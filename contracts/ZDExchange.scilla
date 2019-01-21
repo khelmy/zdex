@@ -1,0 +1,162 @@
+import FungibleToken
+
+library ZDExchange
+
+contract ZDExchange
+()
+
+field tokenCount : Uint128 = 0
+field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
+field token_names : Map ByStr20 String = Emp ByStr20 String
+field token_symbols : Map ByStr20 String = Emp ByStr20 String
+field token_decimals : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
+
+transition CreateMarket (token : ByStr20)
+    (* Modifies fields tokenCount, id_to_token, token_names, token_symbols, *)
+    (* token_decimals, token_totalSupplies, token_balances, token_allowances *)
+end
+
+transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
+        max_tokens : Uint128, deadline : BNum)
+    (* payable *)
+    (* Modifies fields token_totalSupplies, token_balances *)
+    (* returns Uint128 *)
+end
+
+transition RemoveLiquidity (token : ByStr20, min_zil : Uint128,
+        deadline : BNum, recipient : ByStr20)
+    (* Modifies fields token_totalSupplies, token_balances *)
+    (* returns Uint128 *)
+    (* sends funds *)
+end
+
+transition ZilToTokenSwapInput (token : ByStr20, min_tokens : Uint128,
+        deadline : BNum)
+    (* payable *)
+    (* calls FungibleToken.Transfer() *)
+    (* returns Uint128 *)
+end
+
+transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
+        deadline : BNum, recipient : ByStr20)
+    (* payable *)
+    (* calls FungibleToken.Transfer() *)
+    (* returns Uint128 *)
+end
+
+transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
+        deadline : BNum)
+    (* payable *)
+    (* calls FungibleToken.Transfer() *)
+    (* returns Uint128 *)
+end
+
+transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
+        deadline : BNum, recipient : ByStr20)
+    (* payable *)
+    (* calls FungibleToken.Transfer() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum)
+    (* calls FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+    (* sends funds *)
+end
+
+transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum, recipient : ByStr20)
+    (* calls FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+    (* sends funds *)
+end
+
+transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum)
+    (* calls FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToZilTransferOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum, recipient : ByStr20)
+    (* calls FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToTokenSwapInput (token : ByStr20, tokens_sold : Uint128,
+        min_tokens_bought : Uint128, min_zil_bought : Uint128,
+        deadline : BNum, token_other : ByStr20)
+    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToTokenTransferInput(token : ByStr20, tokens_sold : Uint128,
+        min_tokens_bought : Uint128, min_zil_bought : Uint128,
+        deadline : BNum, token_other : ByStr20, recipient : ByStr20)
+    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
+        max_tokens_sold : Uint128, max_zil_sold : Uint128,
+        deadline : BNum, token_other : ByStr20)
+    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition TokenToTokenTransferOutput (token : ByStr20, tokens_bought : Uint128,
+        max_tokens_sold : Uint128, max_zil_sold : Uint128,
+        deadline : BNum, token_other : ByStr20, recipient : ByStr20)
+    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
+    (* returns Uint128 *)
+end
+
+transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
+    (* Modifies field token_balances *)
+    (* returns Bool *)
+end
+
+transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
+        tokens : Uint128)
+    (* Modifies field token_balances *)
+    (* returns Bool *)
+end
+
+transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
+    (* Modifies field token_allowances *)
+    (* returns Bool *)
+end
+
+(** Constant Transitions **)
+
+transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
+    (* returns Uint128 *)
+end
+
+transition ZilToTokenOutputPrice (token : ByStr20, tokens_sold : Uint128)
+    (* returns Uint128 *)
+end
+
+transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
+    (* returns Uint128 *)
+end
+
+transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
+    (* returns Uint128 *)
+end
+
+transition TokenAddress (token_id : Uint128)
+    (* returns ByStr20 *)
+end
+
+transition BalanceOf (token : ByStr20, tokenOwner : Uint128)
+    (* returns Uint128 *)
+end
+
+transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
+    (* returns Uint128 *)
+end
