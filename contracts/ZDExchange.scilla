@@ -1,5 +1,3 @@
-import FungibleToken
-
 library ZDExchange
 
 contract ZDExchange
