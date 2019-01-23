@@ -1,9 +1,41 @@
+scilla_version 1
+
+
 library ZDExchange
+
+let fee_ratio_kept = Uint128 997
+let fee_ratio_denom = Uint128 1000
+let one = Uint128 1
+
+(* returns Uint128 *)
+let input_price =
+    fun (input_amount : Uint128) =>
+    fun (input_reserve : Uint128) =>
+    fun (output_reserve : Uint128) =>
+        (* assert input_reserve > 0 and output_reserve > 0 *)
+        let input_fee_kept = builtin mul input_amount fee_ratio_kept in
+        let numerator = builtin mul input_fee_kept output_reserve in
+        let input_reserve_denom = builtin mul input_reserve fee_ratio_denom in
+        let denominator = builtin add input_reserve_denom input_fee_kept in
+        builtin div numerator denominator
+
+(* returns Uint128 *)
+let output_price =
+    fun (output_amount : Uint128) =>
+    fun (input_reserve : Uint128) =>
+    fun (output_reserve : Uint128) =>
+        (* assert input_reserve > 0 and output_reserve > 0 *)
+        let in_res_out_amount = builtin mul input_reserve output_amount in
+        let numerator = builtin mul in_res_out_amount fee_ratio_denom in
+        let out_res_amount = builtin sub output_reserve output_amount in
+        let denominator = builtin mul out_res_amount fee_ratio_kept in
+        let ratio = builtin div numerator denominator in
+        builtin add ratio one
 
 contract ZDExchange
 ()
 
-field tokenCount : Uint128 = 0
+field tokenCount : Uint128 = Uint128 0
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 field token_names : Map ByStr20 String = Emp ByStr20 String
 field token_symbols : Map ByStr20 String = Emp ByStr20 String
