@@ -188,8 +188,14 @@ transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
     (* returns Uint128 *)
 end
 
+(* Gets token address from token_id *)
 transition TokenAddress (token_id : Uint128)
-    (* returns ByStr20 *)
+    (* returns Option ByStr20 in token_address *)
+    token_address <- id_to_token[token_id];
+    msg = { _tag : "Main"; _recipient : _sender;
+            _amount : zero; token_address : token_address };
+    msgs = one_msg msg;
+    send msgs
 end
 
 (** FungibleToken-like Constant Transitions **)
@@ -197,6 +203,7 @@ end
 (* Checks deposited token balance of tokenOwner *)
 transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
     (* returns Uint128 in balance *)
+    (* message gives extra info *)
     balances <- token_balances[token];
     match balances with
     |   Some bs =>
@@ -215,7 +222,8 @@ transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
         end
     |   None =>
             msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; message : "Token not Found" };
+                    _amount : zero; balance : zero;
+                    message : "Token not Found" };
             msgs = one_msg msg;
             send msgs
     end
