@@ -231,4 +231,27 @@ end
 
 transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
     (* returns Uint128 *)
+    allowances <- token_allowances[token];
+    match allowances with
+    |   Some as =>
+        allowance <- token_allowances[token][tokenOwner][spender];
+        match allowance with
+        |   Some a =>
+            msg = { _tag : "Main"; _recipient : _sender;
+                    _amount : zero; allowance : a};
+            msgs = one_msg msg;
+            send msgs
+        |   None =>
+            msg = { _tag : "Main"; _recipient : _sender;
+                    _amount : zero; allowance : zero};
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   None =>
+        msg = { _tag : "Main"; _recipient : _sender;
+                _amount : zero; allowance : zero;
+                message : "Token not Found" };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
