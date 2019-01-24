@@ -8,7 +8,6 @@ let fee_ratio_denom = Uint128 1000
 let one = Uint128 1
 let zero = Uint128 0
 
-
 (* returns Uint128 *)
 let input_price =
     fun (input_amount : Uint128) =>
@@ -35,7 +34,7 @@ let output_price =
         builtin add ratio one
 
 (* returns singleton List Message *)
-let wrap_msg =
+let one_msg =
     fun (msg : Message) =>
         let nil_msg = Nil {Message} in
         Cons {Message} msg nil_msg
@@ -193,32 +192,31 @@ transition TokenAddress (token_id : Uint128)
     (* returns ByStr20 *)
 end
 
-(** FungibleToken-like Token Transitions **)
+(** FungibleToken-like Constant Transitions **)
 
 (* Checks deposited token balance of tokenOwner *)
 transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
     (* returns Uint128 in balance *)
-    t_balances <- token_balances;
-    balances = builtin get t_balances token;
+    balances <- token_balances[token];
     match balances with
     |   Some bs =>
-        balance = builtin get bs tokenOwner;
+        balance <- token_balances[token][tokenOwner];
         match balance with
         |   Some b =>
             msg = { _tag : "Main"; _recipient : _sender;
                     _amount : zero; balance : b };
-            msgs = wrap_msg msg;
+            msgs = one_msg msg;
             send msgs
         |   None =>
             msg = { _tag : "Main"; _recipient : _sender;
                     _amount : zero; balance : zero };
-            msgs = wrap_msg msg;
+            msgs = one_msg msg;
             send msgs
         end
     |   None =>
             msg = { _tag : "Main"; _recipient : _sender;
                     _amount : zero; message : "Token not Found" };
-            msgs = wrap_msg msg;
+            msgs = one_msg msg;
             send msgs
     end
 end
