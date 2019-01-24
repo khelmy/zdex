@@ -6,6 +6,8 @@ library ZDExchange
 let fee_ratio_kept = Uint128 997
 let fee_ratio_denom = Uint128 1000
 let one = Uint128 1
+let zero = Uint128 0
+
 
 (* returns Uint128 *)
 let input_price =
@@ -31,6 +33,12 @@ let output_price =
         let denominator = builtin mul out_res_amount fee_ratio_kept in
         let ratio = builtin div numerator denominator in
         builtin add ratio one
+
+(* returns singleton List Message *)
+let wrap_msg =
+    fun (msg : Message) =>
+        let nil_msg = Nil {Message} in
+        Cons {Message} msg nil_msg
 
 contract ZDExchange
 ()
@@ -145,6 +153,8 @@ transition TokenToTokenTransferOutput (token : ByStr20, tokens_bought : Uint128,
     (* returns Uint128 *)
 end
 
+(** FungibleToken-like Transitions **)
+
 transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
     (* Modifies field token_balances *)
     (* returns Bool *)
@@ -183,8 +193,34 @@ transition TokenAddress (token_id : Uint128)
     (* returns ByStr20 *)
 end
 
-transition BalanceOf (token : ByStr20, tokenOwner : Uint128)
-    (* returns Uint128 *)
+(** FungibleToken-like Token Transitions **)
+
+(* Checks deposited token balance of tokenOwner *)
+transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
+    (* returns Uint128 in balance *)
+    t_balances <- token_balances;
+    balances = builtin get t_balances token;
+    match balances with
+    |   Some bs =>
+        balance = builtin get bs tokenOwner;
+        match balance with
+        |   Some b =>
+            msg = { _tag : "Main"; _recipient : _sender;
+                    _amount : zero; balance : b };
+            msgs = wrap_msg msg;
+            send msgs
+        |   None =>
+            msg = { _tag : "Main"; _recipient : _sender;
+                    _amount : zero; balance : zero };
+            msgs = wrap_msg msg;
+            send msgs
+        end
+    |   None =>
+            msg = { _tag : "Main"; _recipient : _sender;
+                    _amount : zero; message : "Token not Found" };
+            msgs = wrap_msg msg;
+            send msgs
+    end
 end
 
 transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
