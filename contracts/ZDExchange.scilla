@@ -192,8 +192,9 @@ end
 transition TokenAddress (token_id : Uint128)
     (* returns Option ByStr20 in token_address *)
     token_address <- id_to_token[token_id];
-    msg = { _tag : "Main"; _recipient : _sender;
-            _amount : zero; token_address : token_address };
+    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            token_id : Uint128;
+            token_address : token_address };
     msgs = one_msg msg;
     send msgs
 end
@@ -210,46 +211,54 @@ transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
         balance <- token_balances[token][tokenOwner];
         match balance with
         |   Some b =>
-            msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; balance : b };
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokenOwner : tokenOwner;
+                    balance : b };
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; balance : zero };
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokenOwner : tokenOwner;
+                    balance : zero };
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-            msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; balance : zero;
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokenOwner : tokenOwner;
+                    balance : zero;
                     message : "Token not Found" };
             msgs = one_msg msg;
             send msgs
     end
 end
 
+(* Checks allowance of spender with tokenOwner *)
 transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
-    (* returns Uint128 *)
+    (* returns Option Uint128 in allowance *)
+    (* message gives extra info *)
     allowances <- token_allowances[token];
     match allowances with
     |   Some as =>
         allowance <- token_allowances[token][tokenOwner][spender];
         match allowance with
         |   Some a =>
-            msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; allowance : a};
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokenOwner : tokenOwner; spender : spender;
+                    allowance : a};
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "Main"; _recipient : _sender;
-                    _amount : zero; allowance : zero};
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokenOwner : tokenOwner; spender : spender;
+                    allowance : zero};
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender;
-                _amount : zero; allowance : zero;
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; tokenOwner : tokenOwner; spender : spender;
+                allowance : zero;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
