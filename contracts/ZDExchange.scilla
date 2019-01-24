@@ -7,6 +7,7 @@ let fee_ratio_kept = Uint128 997
 let fee_ratio_denom = Uint128 1000
 let one = Uint128 1
 let zero = Uint128 0
+let none_uint = None {Uint128}
 
 (* returns Uint128 *)
 let input_price =
@@ -170,20 +171,22 @@ transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
     (* returns Bool *)
 end
 
-(** Constant Transitions **)
-
+(* Price function for Zil -> Token trades *)
 transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
     (* returns Uint128 *)
 end
 
+(* Price function for Zil -> Token trades *)
 transition ZilToTokenOutputPrice (token : ByStr20, tokens_sold : Uint128)
     (* returns Uint128 *)
 end
 
+(* Price function for Token -> Zil trades *)
 transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
     (* returns Uint128 *)
 end
 
+(* Price function for Token -> Zil trades *)
 transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
     (* returns Uint128 *)
 end
