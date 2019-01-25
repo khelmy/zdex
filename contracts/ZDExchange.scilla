@@ -241,12 +241,29 @@ end
 transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
         tokens : Uint128)
     (* Modifies field token_balances *)
-    (* returns Bool *)
+    (* returns Bool in transferred *)
 end
 
 transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
     (* Modifies field token_allowances *)
-    (* returns Bool *)
+    (* returns Bool in approved *)
+    allowances <- token_allowances[token];
+    match allowances with
+    |   Some as =>
+        token_allowances[token][_sender][spender] := tokens;
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; spender : spender; tokens : tokens;
+                approved : True };
+        msgs = one_msg msg;
+        send msgs
+    |   None =>
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; spender : spender; tokens : tokens;
+                approved : False;
+                message : "Token not Found" };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 (* Price function for Zil -> Token trades *)
