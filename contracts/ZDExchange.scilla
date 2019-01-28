@@ -435,9 +435,38 @@ transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
     end
 end
 
-(* Price function for Token -> Zil trades *)
+(* Input Price function for Token -> Zil trades *)
 transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
-    (* returns Uint128 *)
+    (* returns Option Uint128 in price *)
+    token_reserve <- token_balances[token][_this_address];
+    match token_reserve with
+    |   None =>
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; tokens_sold : tokens_sold;
+                price : None;
+                message : "Token not Found" };
+        msgs = one_msg msg;
+        send msgs
+    |   Some t_r =>
+        bal <- _balance;
+        any_param_zero = any_zero_triple tokens_sold t_r bal;
+        match any_param_zero with
+        |   True =>
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokens_sold : tokens_sold;
+                    price : None;
+                    message : "_balance, token balance, tokens_sold must be nonzero" };
+            msgs = one_msg msg;
+            send msgs
+        |   False =>
+            price = input_price tokens_sold t_r bal;
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokens_sold : tokens_sold;
+                    price : price };
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
 end
 
 (* Price function for Token -> Zil trades *)
