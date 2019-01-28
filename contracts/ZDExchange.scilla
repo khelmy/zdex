@@ -242,6 +242,80 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
         tokens : Uint128)
     (* Modifies field token_balances *)
     (* returns Bool in transferred *)
+    balances <- token_balances[token];
+    match balances with
+    |   Some bs =>
+        (* Modified from FungibleToken *)
+        bal <- token_balances[token][from];
+        match bal with
+        | Some b =>
+          can_do = le_int tokens b;
+          match can_do with
+          | True =>
+            (* subtract tokens from from and add it to "to" *)
+            allowance <- token_allowances[token][from][to];
+            match allowance with
+            |   Some a =>
+                allowance_sufficient = le_int tokens a;
+                match allowance_sufficient with
+                |   True =>
+                    new_from_bal = builtin sub b tokens;
+                    token_balances[token][from] := new_from_bal;
+
+                    (* Adds tokens to "to" address *)
+                    to_bal <- token_balances[token][to];
+                    new_to_bal = match to_bal with
+                    | Some x => builtin add x tokens
+                    | None => tokens
+                    end;
+                	  token_balances[token][to] := new_to_bal;
+                    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                            token : token; from : from; to : to; tokens : tokens;
+                            transferredFrom : True };
+                    msgs = one_msg msg;
+                    send msgs
+                |   False =>
+                    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                            token : token; from : from; to : to; tokens : tokens;
+                            transferredFrom : False;
+                            message : "Allowance not Sufficient" };
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                        token : token; from : from; to : to; tokens : tokens;
+                        transferredFrom : False;
+                        message : "Allowance not Found" };
+                msgs = one_msg msg;
+                send msgs
+            end
+          | False =>
+            (* balance not sufficient. *)
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; from : from; to : to; tokens : tokens;
+                    transferredFrom : False;
+                    message : "Balance not Sufficient" };
+            msgs = one_msg msg;
+            send msgs
+          end
+        | None =>
+            (* no balance record, can't transfer *)
+        	msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; from : from; to : to; tokens : tokens;
+                    transferredFrom : False;
+                    message : "Balance not Found" };
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   None =>
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; from : from; to : to; tokens : tokens;
+                transferredFrom : False;
+                message : "Token not Found" };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
