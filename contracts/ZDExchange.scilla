@@ -367,7 +367,7 @@ transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
     end
 end
 
-(* Price function for Zil -> Token trades *)
+(* Input Price function for Zil -> Token trades *)
 transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
     (* returns Option Uint128 in price *)
     token_reserve <- token_balances[token][_this_address];
@@ -401,9 +401,38 @@ transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
     end
 end
 
-(* Price function for Zil -> Token trades *)
-transition ZilToTokenOutputPrice (token : ByStr20, tokens_sold : Uint128)
-    (* returns Uint128 in price *)
+(* Output Price function for Zil -> Token trades *)
+transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
+    (* returns Option Uint128 in price *)
+    token_reserve <- token_balances[token][_this_address];
+    match token_reserve with
+    |   None =>
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token; tokens_bought : tokens_bought;
+                price : None;
+                message : "Token not Found" };
+        msgs = one_msg msg;
+        send msgs
+    |   Some t_r =>
+        bal <- _balance;
+        any_param_zero = any_zero_triple tokens_bought bal t_r;
+        match any_param_zero with
+        |   True =>
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokens_bought : tokens_bought;
+                    price : None;
+                    message : "_balance, token balance, tokens_bought must be nonzero" };
+            msgs = one_msg msg;
+            send msgs
+        |   False =>
+            price = output_price tokens_bought bal t_r;
+            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    token : token; tokens_bought : tokens_bought;
+                    price : price };
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
 end
 
 (* Price function for Token -> Zil trades *)
