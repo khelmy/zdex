@@ -101,7 +101,7 @@ transition CreateMarket (token : ByStr20)
     balances <- token_balances[token];
     match balances with
     |   Some bs =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "CreateMarketFailure"; _recipient : _sender; _amount : zero;
                 token : token;
                 created : False;
                 message : "Token already present" };
@@ -122,7 +122,7 @@ transition CreateMarket (token : ByStr20)
         (* Update token_allowances *)
         allowances_new = Emp ByStr20 (Map ByStr20 Uint128);
         token_allowances[token] := allowances_new;
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero;
                 token : token;
                 created : True };
         msgs = one_msg msg;
@@ -264,14 +264,14 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
             | None => tokens
             end;
         	token_balances[token][to] := new_to_bal;
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TransferSuccess"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : True };
             msgs = one_msg msg;
             send msgs
           | False =>
             (* balance not sufficient. *)
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : False;
                     message : "Balance not Sufficient" };
@@ -280,7 +280,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
           end
         | None =>
             (* no balance record, can't transfer *)
-        	msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        	msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : False;
                     message : "Balance not Found" };
@@ -288,7 +288,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
             send msgs
         end
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                 token : token; to : to; tokens : tokens;
                 transferred : False;
                 message : "Token not Found" };
@@ -328,13 +328,13 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
                     | None => tokens
                     end;
                 	  token_balances[token][to] := new_to_bal;
-                    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    msg = { _tag : "TransferFromSuccess"; _recipient : _sender; _amount : zero;
                             token : token; from : from; to : to; tokens : tokens;
                             transferredFrom : True };
                     msgs = one_msg msg;
                     send msgs
                 |   False =>
-                    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                    msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                             token : token; from : from; to : to; tokens : tokens;
                             transferredFrom : False;
                             message : "Allowance not Sufficient" };
@@ -342,7 +342,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
                     send msgs
                 end
             |   None =>
-                msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                         token : token; from : from; to : to; tokens : tokens;
                         transferredFrom : False;
                         message : "Allowance not Found" };
@@ -351,7 +351,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             end
           | False =>
             (* balance not sufficient. *)
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
                     transferredFrom : False;
                     message : "Balance not Sufficient" };
@@ -360,7 +360,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
           end
         | None =>
             (* no balance record, can't transfer *)
-        	msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        	msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
                     transferredFrom : False;
                     message : "Balance not Found" };
@@ -368,7 +368,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             send msgs
         end
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                 token : token; from : from; to : to; tokens : tokens;
                 transferredFrom : False;
                 message : "Token not Found" };
@@ -384,13 +384,13 @@ transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
     match allowances with
     |   Some as =>
         token_allowances[token][_sender][spender] := tokens;
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
                 approved : True };
         msgs = one_msg msg;
         send msgs
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
                 approved : False;
                 message : "Token not Found" };
@@ -401,13 +401,14 @@ end
 
 (* Input Price function for Zil -> Token trades *)
 transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
-    (* returns Option Uint128 in price *)
+    (* returns Uint128 in price *)
+    (* zero in price indicates failure *)
     token_reserve <- token_balances[token][_this_address];
     match token_reserve with
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ZilToTokenInputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; zil_sold : zil_sold;
-                price : None;
+                price : zero;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -416,15 +417,15 @@ transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
         any_param_zero = any_zero_triple zil_sold bal t_r;
         match any_param_zero with
         |   True =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "ZilToTokenInputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; zil_sold : zil_sold;
-                    price : None;
+                    price : zero;
                     message : "_balance, token balance, zil_sold must be nonzero" };
             msgs = one_msg msg;
             send msgs
         |   False =>
             price = input_price zil_sold bal t_r;
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "ZilToTokenInputPriceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; zil_sold : zil_sold;
                     price : price };
             msgs = one_msg msg;
@@ -435,13 +436,14 @@ end
 
 (* Output Price function for Zil -> Token trades *)
 transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
-    (* returns Option Uint128 in price *)
+    (* returns Uint128 in price *)
+    (* zero in price indicates failure *)
     token_reserve <- token_balances[token][_this_address];
     match token_reserve with
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ZilToTokenOutputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokens_bought : tokens_bought;
-                price : None;
+                price : zero;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -450,15 +452,15 @@ transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
         any_param_zero = any_zero_triple tokens_bought bal t_r;
         match any_param_zero with
         |   True =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "ZilToTokenOutputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; tokens_bought : tokens_bought;
-                    price : None;
+                    price : zero;
                     message : "_balance, token balance, tokens_bought must be nonzero" };
             msgs = one_msg msg;
             send msgs
         |   False =>
             price = output_price tokens_bought bal t_r;
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "ZilToTokenOutputPriceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokens_bought : tokens_bought;
                     price : price };
             msgs = one_msg msg;
@@ -469,13 +471,14 @@ end
 
 (* Input Price function for Token -> Zil trades *)
 transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
-    (* returns Option Uint128 in price *)
+    (* returns Uint128 in price *)
+    (* zero in price indicates failure *)
     token_reserve <- token_balances[token][_this_address];
     match token_reserve with
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "TokenToZilInputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokens_sold : tokens_sold;
-                price : None;
+                price : zero;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -486,7 +489,7 @@ transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
         |   True =>
             msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
                     token : token; tokens_sold : tokens_sold;
-                    price : None;
+                    price : zero;
                     message : "_balance, token balance, tokens_sold must be nonzero" };
             msgs = one_msg msg;
             send msgs
@@ -503,14 +506,14 @@ end
 
 (* Output Price function for Token -> Zil trades *)
 transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
-    (* returns Uint128 *)
-    (* returns Option Uint128 in price *)
+    (* returns Uint128 in price *)
+    (* zero in price indicates failure *)
     token_reserve <- token_balances[token][_this_address];
     match token_reserve with
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "TokenToZilOutputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; zil_bought : zil_bought;
-                price : None;
+                price : zero;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -519,15 +522,15 @@ transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
         any_param_zero = any_zero_triple zil_bought t_r bal;
         match any_param_zero with
         |   True =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TokenToZilOutputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; zil_bought : zil_bought;
-                    price : None;
+                    price : zero;
                     message : "_balance, token balance, zil_bought must be nonzero" };
             msgs = one_msg msg;
             send msgs
         |   False =>
             price = input_price zil_bought t_r bal;
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TokenToZilOutputPriceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; zil_bought : zil_bought;
                     price : price };
             msgs = one_msg msg;
@@ -540,7 +543,7 @@ end
 transition TokenAddress (token_id : Uint128)
     (* returns Option ByStr20 in token_address *)
     token_address <- id_to_token[token_id];
-    msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+    msg = { _tag : "TokenAddressResponse"; _recipient : _sender; _amount : zero;
             token_id : token_id;
             token_address : token_address };
     msgs = one_msg msg;
@@ -559,20 +562,20 @@ transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
         balance <- token_balances[token][tokenOwner];
         match balance with
         |   Some b =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : b };
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : zero };
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : zero;
                     message : "Token not Found" };
@@ -591,20 +594,20 @@ transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
         allowance <- token_allowances[token][tokenOwner][spender];
         match allowance with
         |   Some a =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner; spender : spender;
                     allowance : a};
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner; spender : spender;
                     allowance : zero};
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
                 token : token; tokenOwner : tokenOwner; spender : spender;
                 allowance : zero;
                 message : "Token not Found" };
