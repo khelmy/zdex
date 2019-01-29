@@ -16,8 +16,12 @@ The first time you typecheck, from the Scilla root folder, run:
 docker build -t scilla .
 ```
 
-From then on, from the ZDEX root folder, just run
-
+From then on, from the ZDEX root folder, to typecheck the ZDExchange contract, run:
 ```
 . typecheck.bash
+```
+
+To typecheck the FungibleToken contract, run:
+```
+. typecheck_token.bash
 ```
