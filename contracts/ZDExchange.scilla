@@ -86,16 +86,48 @@ contract ZDExchange
 
 field tokenCount : Uint128 = Uint128 0
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
-field token_names : Map ByStr20 String = Emp ByStr20 String
-field token_symbols : Map ByStr20 String = Emp ByStr20 String
-field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32
+(* field token_names : Map ByStr20 String = Emp ByStr20 String *)
+(* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
+(* field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32 *)
 field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
 transition CreateMarket (token : ByStr20)
-    (* Modifies fields tokenCount, id_to_token, token_names, token_symbols, *)
-    (* token_decimals, token_totalSupplies, token_balances, token_allowances *)
+    (* Modifies fields tokenCount, id_to_token token_totalSupplies, *)
+    (* token_balances, token_allowances *)
+    (* if returned, modifies token_names, token_symbols, token_decimals *)
+    (* returns Bool in created *)
+    balances <- token_balances[token];
+    match balances with
+    |   Some bs =>
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token;
+                created : False;
+                message : "Token already present" };
+        msgs = one_msg msg;
+        send msgs
+    |   None =>
+        (* Update tokenCount *)
+        tC <- tokenCount;
+        tC_new = builtin add tC one;
+        tokenCount := tC_new;
+        (* Update id_to_token *)
+        id_to_token[tC_new] := token;
+        (* Update token_totalSupplies *)
+        token_totalSupplies[token] := zero;
+        (* Update token_balances *)
+        balances_new = Emp ByStr20 Uint128;
+        token_balances[token] := balances_new;
+        (* Update token_allowances *)
+        allowances_new = Emp ByStr20 (Map ByStr20 Uint128);
+        token_allowances[token] := allowances_new;
+        msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+                token : token;
+                created : True };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
@@ -201,7 +233,7 @@ transition WithdrawTokens (token : ByStr20, tokens : Uint128)
 end
 
 transition WithdrawTokensFrom (token : ByStr20, from: ByStr20, tokens : Uint128)
-    (* returns Bool in withdrawn *)
+    (* returns Bool in withdrawnFrom *)
 end
 
 
@@ -231,7 +263,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
             | Some x => builtin add x tokens
             | None => tokens
             end;
-        	  token_balances[token][to] := new_to_bal;
+        	token_balances[token][to] := new_to_bal;
             msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : True };
