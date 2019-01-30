@@ -205,7 +205,13 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                 send msgs
             end
         |   None =>
-
+            msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+                    token : token;
+                    zil_sold : zil_sold; min_tokens : min_tokens;
+                    deadline : deadline; buyer : buyer; recipient : recipient;
+                    message : "Token not found"};
+            msgs = one_msg msg;
+            send msgs
         end
     end
 end
@@ -245,11 +251,16 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
     end
 end
 
+transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128,
+        deadline : BNum)
+    (* calls FungibleToken.Transfer() *)
+
+end
+
 transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
         deadline : BNum)
     (* payable *)
-    (* calls FungibleToken.Transfer() *)
-    (* returns Uint128 *)
+    (* calls ZilToTokenOutput() *)
 end
 
 transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
