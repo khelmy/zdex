@@ -43,21 +43,6 @@ let one_msg =
         let nil_msg = Nil {Message} in
         Cons {Message} msg nil_msg
 
-(* returns double List Message *)
-let two_msgs =
-    fun (msg_1 : Message) =>
-    fun (msg_2 : Message) =>
-        let one_msg_1 = one_msg msg_1 in
-        Cons {Message} msg_2 one_msg_1
-
-(* returns triple List Message *)
-let three_msgs =
-    fun (msg_1 : Message) =>
-    fun (msg_2 : Message) =>
-    fun (msg_3 : Message) =>
-        let two_msgs_12 = two_msgs msg_1 msg_2 in
-        Cons {Message} msg_3 two_msgs_12
-
 
 (***************************************************)
 (*             The contract definition             *)
@@ -118,11 +103,9 @@ transition Transfer (to : ByStr20, tokens : Uint128)
       end;
 
   	  balances[to] := new_to_bal;
-      msg_1 = { _tag : "TransferSuccess"; _recipient : _sender; _amount : zero;
+      msg = { _tag : "TransferSuccess"; _recipient : _sender; _amount : zero;
               sender : _sender; recipient : to; amount : tokens};
-      msg_2 = { _tag : "TransferSuccess"; _recipient : to; _amount : zero;
-              sender : _sender; recipient : to; amount : tokens};
-      msgs = two_msgs msg_1 msg_2;
+      msgs = one_msg msg;
       send msgs
     | False =>
       (* balance not sufficient. *)
@@ -168,13 +151,9 @@ transition TransferFrom (from : ByStr20, to : ByStr20, tokens : Uint128)
             (* reduce "allowed" by "tokens" *)
             new_allowed = builtin sub b tokens;
             allowed[from][_sender] := new_allowed;
-            msg_1 = { _tag : "TransferFromSuccess"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TransferFromSuccess"; _recipient : _sender; _amount : zero;
                     sender : from; recipient : to; amount : tokens};
-            msg_2 = { _tag : "TransferFromSuccess"; _recipient : from; _amount : zero;
-                    sender : from; recipient : to; amount : tokens};
-            msg_3 = { _tag : "TransferFromSuccess"; _recipient : to; _amount : zero;
-                    sender : from; recipient : to; amount : tokens};
-            msgs = three_msgs msg_1 msg_2 msg_3;
+            msgs = one_msg msg;
             send msgs
         | False =>
             msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
@@ -198,11 +177,9 @@ end
 
 transition Approve (spender : ByStr20, tokens : Uint128)
   allowed[_sender][spender] := tokens;
-  msg_1 = { _tag : "ApproveSuccess"; _recipient : _sender; _amount : zero;
+  msg = { _tag : "ApproveSuccess"; _recipient : _sender; _amount : zero;
           approver : _sender; spender : spender; amount : tokens };
-  msg_2 = { _tag : "ApproveSuccess"; _recipient : spender; _amount : zero;
-          approver : _sender; spender : spender; amount : tokens };
-  msgs = two_msgs msg_1 msg_2;
+  msgs = one_msg msg;
   send msgs
 end
 
