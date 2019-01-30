@@ -200,7 +200,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                         token : token;
                         zil_sold : zil_sold; min_tokens : min_tokens;
                         deadline : deadline; buyer : buyer; recipient : recipient;
-                        message : "One of _balance, token balance, zil_sold is zero"};
+                        message : "One of zil_sold, bal_subbed, token_reserve is zero"};
                 msgs = one_msg msg;
                 send msgs
             end
@@ -251,10 +251,58 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
     end
 end
 
-transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128,
-        deadline : BNum)
+(* Due to restrictions in Scilla, we cannot provide refunds at this time *)
+transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil : Uint128,
+        deadline : BNum, buyer : ByStr20, recipient : ByStr20)
+    (* private *)
     (* calls FungibleToken.Transfer() *)
-
+    (* Sends funds *)
+    match _sender with
+    |   _this_address =>
+        token_reserve <- token_totalSupplies[token];
+        match token_reserve with
+        |   Some t_r =>
+            bal <- _balance;
+            bal_subbed = builtin sub bal max_zil;
+            any_param_zero = any_zero_triple tokens_bought max_zil t_r;
+            match any_param_zero with
+            |   False =>
+                blocknumber <- & BLOCKNUMBER;
+                block_valid = ble blocknumber deadline;
+                match block_valid with
+                |   True =>
+                    msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
+                            to : recipient; tokens : tokens_bought};
+                    msgs = one_msg msg;
+                    send msgs
+                |   False =>
+                    msg = { _tag : "ZilToTokenOutputFailure"; _recipient : buyer; _amount : zero;
+                            token : token;
+                            tokens_bought : tokens_bought; max_zil : max_zil;
+                            deadline : deadline; buyer : buyer; recipient : recipient;
+                            message : "Order expired"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   True =>
+                msg = { _tag : "ZilToTokenOutputFailure"; _recipient : buyer; _amount : zero;
+                        token : token;
+                        tokens_bought : tokens_bought; max_zil : max_zil;
+                        deadline : deadline; buyer : buyer; recipient : recipient;
+                        message : "One of tokens_bought, max_zil, token_reserve is zero"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   None =>
+            msg = { _tag : "ZilToTokenOutputFailure"; _recipient : buyer; _amount : zero;
+                    token : token;
+                    tokens_bought : tokens_bought; max_zil : max_zil;
+                    deadline : deadline; buyer : buyer; recipient : recipient;
+                    message : "Token not found"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
 end
 
 transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
