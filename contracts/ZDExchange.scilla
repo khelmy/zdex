@@ -91,7 +91,7 @@ let le_int =
 contract ZDExchange
 ()
 
-field tokenCount : Uint128 = Uint128 0
+field tokenCount : Uint128 = zero
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 (* field token_names : Map ByStr20 String = Emp ByStr20 String *)
 (* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
@@ -99,6 +99,9 @@ field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
+
+(* Modify state to keep track of transfer funds *)
+field tx_pending_debt : Uint128 = zero
 
 transition CreateMarket (token : ByStr20)
     (* Modifies fields tokenCount, id_to_token token_totalSupplies, *)
@@ -182,7 +185,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                                 token : token;
                                 zil_sold : zil_sold; min_tokens : min_tokens;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
-                                message : "min_tokens not met"};
+                                message : "Minimum order not met"};
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -250,12 +253,11 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
     end
 end
 
-(* Due to restrictions in Scilla, we cannot provide refunds at this time *)
 transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
     (* calls FungibleToken.Transfer() *)
-    (* Sends funds *)
+    (* Refunds provided through TransferSuccess *)
     match _sender with
     |   _this_address =>
         token_reserve <- token_totalSupplies[token];
@@ -270,6 +272,9 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                 block_valid = ble blocknumber deadline;
                 match block_valid with
                 |   True =>
+                    zil_sold = output_price tokens_bought max_zil t_r;
+                    zil_refund = builtin sub max_zil zil_sold;
+                    tx_pending_debt := zil_refund;
                     msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
                             to : recipient; tokens : tokens_bought};
                     msgs = one_msg msg;
@@ -340,18 +345,79 @@ transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
     end
 end
 
+transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20)
+    (* private *)
+    (* calls FungibleToken.TransferFrom() *)
+    (* Payment provided through TransferFromSuccess *)
+    match _sender with
+    |   _this_address =>
+        token_reserve <- token_totalSupplies[token];
+        match token_reserve with
+        |   Some t_r =>
+            bal <- _balance;
+            any_param_zero = any_zero_triple tokens_sold t_r bal;
+            match any_param_zero with
+            |   False =>
+                blocknumber <- & BLOCKNUMBER;
+                block_valid = ble blocknumber deadline;
+                match block_valid with
+                |   True =>
+                    zil_bought = input_price tokens_sold t_r bal;
+                    enough_bought = le_int min_zil zil_bought;
+                    match enough_bought with
+                    |   True =>
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : buyer; to : _this_address; tokens : tokens_sold};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   False =>
+                        msg = { _tag : "TokenToZilInputFailure"; _recipient : buyer; _amount : zero;
+                                token : token;
+                                tokens_sold : tokens_sold; min_zil : min_zil;
+                                deadline : deadline; buyer : buyer; recipient : recipient;
+                                message : "Minimum order not met"};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   False =>
+                    msg = { _tag : "TokenToZilInputFailure"; _recipient : buyer; _amount : zero;
+                            token : token;
+                            tokens_sold : tokens_sold; min_zil : min_zil;
+                            deadline : deadline; buyer : buyer; recipient : recipient;
+                            message : "Order expired"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   True =>
+                msg = { _tag : "TokenToZilInputFailure"; _recipient : buyer; _amount : zero;
+                        token : token;
+                        tokens_sold : tokens_sold; min_zil : min_zil;
+                        deadline : deadline; buyer : buyer; recipient : recipient;
+                        message : "One of tokens_sold, _balance, token_reserve is zero"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   None =>
+            msg = { _tag : "TokenToZilInputFailure"; _recipient : buyer; _amount : zero;
+                    token : token;
+                    tokens_sold : tokens_sold; min_zil : min_zil;
+                    deadline : deadline; buyer : buyer; recipient : recipient;
+                    message : "Token not found"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
 transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
         min_zil : Uint128, deadline : BNum)
-    (* calls FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
-    (* sends funds *)
+    (* calls TokenToZilInput() *)
 end
 
 transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
         min_zil : Uint128, deadline : BNum, recipient : ByStr20)
-    (* calls FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
-    (* sends funds *)
+    (* calls TokenToZilInput() *)
 end
 
 transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
@@ -776,6 +842,7 @@ end
 (* Response Functions *)
 
 transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    (* sends funds *)
     match sender with
     |   _this_address =>
         totalSupply <- token_totalSupplies[_sender];
@@ -783,12 +850,39 @@ transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint
         |   Some tS =>
             tS_new = builtin sub tS amount;
             token_totalSupplies[_sender] := tS_new;
-            msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+            debt <- tx_pending_debt;
+            tx_pending_debt := zero;
+            msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : debt;
                     sender : sender; recipient : recipient; amount : amount };
             msgs = one_msg msg;
             send msgs
         |   None =>
             msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+                    sender : sender; recipient : recipient; amount : amount;
+                    message : "Token not Found" };
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
+transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    (* sends funds *)
+    match recipient with
+    |   _this_address =>
+        totalSupply <- token_totalSupplies[_sender];
+        match totalSupply with
+        |   Some tS =>
+            tS_new = builtin add tS amount;
+            token_totalSupplies[_sender] := tS_new;
+            debt <- tx_pending_debt;
+            tx_pending_debt := zero;
+            msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                    sender : sender; recipient : recipient; amount : amount };
+            msgs = one_msg msg;
+            send msgs
+        |   None =>
+            msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
                     message : "Token not Found" };
             msgs = one_msg msg;
