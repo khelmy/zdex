@@ -236,8 +236,7 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
     match r_eq_ta with
     |   True =>
         msg = { _tag : "ZilToTokenTransferInputFailure"; _recipient : _sender; _amount : zero;
-                token : token; zil_sold : _amount; min_tokens : min_tokens;
-                deadline : deadline; buyer : _sender; recipient : recipient;
+                token : token; min_tokens : min_tokens; deadline : deadline; recipient : recipient;
                 message : "ZDExchange cannot be recipient" };
         msgs = one_msg msg;
         send msgs
@@ -309,13 +308,36 @@ transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
         deadline : BNum)
     (* payable *)
     (* calls ZilToTokenOutput() *)
+    accept;
+    msg = { _tag : "ZilToTokenOutput"; _recipient : _this_address; _amount : zero;
+            token : token;
+            tokens_bought : tokens_bought; max_zil : _amount;
+            deadline : deadline; buyer : _sender; recipient : _sender };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
         deadline : BNum, recipient : ByStr20)
     (* payable *)
-    (* calls FungibleToken.Transfer() *)
-    (* returns Uint128 *)
+    (* calls ZilToTokenOutput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "ZilToTokenTransferOutputFailure"; _recipient : _sender; _amount : zero;
+                token : token; tokens_bought : tokens_bought; deadline : deadline; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        accept;
+        msg = { _tag : "ZilToTokenOutput"; _recipient : _this_address; _amount : zero;
+                token : token;
+                tokens_bought : tokens_bought; max_zil : _amount;
+                deadline : deadline; buyer : _sender; recipient : recipient };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
