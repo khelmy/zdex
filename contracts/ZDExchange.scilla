@@ -413,11 +413,33 @@ end
 transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
         min_zil : Uint128, deadline : BNum)
     (* calls TokenToZilInput() *)
+    msg = { _tag : "TokenToZilInput"; _recipient : _this_address; _amount : zero;
+            token : token;
+            tokens_sold : tokens_sold; min_zil : min_zil;
+            deadline : deadline; buyer : _sender; recipient : _sender };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
         min_zil : Uint128, deadline : BNum, recipient : ByStr20)
     (* calls TokenToZilInput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "TokenToZilTransferInputFailure"; _recipient : _sender; _amount : zero;
+                token : token; min_zil : min_zil; deadline : deadline; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "TokenToZilInput"; _recipient : _this_address; _amount : zero;
+                token : token;
+                tokens_sold : tokens_sold; min_zil : min_zil;
+                deadline : deadline; buyer : _sender; recipient : recipient };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
