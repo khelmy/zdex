@@ -151,8 +151,7 @@ transition RemoveLiquidity (token : ByStr20, min_zil : Uint128,
     (* sends funds *)
 end
 
-transition ZilToTokenInput (token : ByStr20, caller : ByStr20,
-        zil_sold : Uint128, min_tokens : Uint128,
+transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
     (* payable *)
@@ -164,25 +163,25 @@ transition ZilToTokenInput (token : ByStr20, caller : ByStr20,
         match token_reserve with
         |   Some t_r =>
             bal <- _balance;
-            bal_new = builtin sub bal zil_sold;
-            any_param_zero = any_zero_triple zil_sold bal_new t_r;
+            bal_subbed = builtin sub bal zil_sold;
+            any_param_zero = any_zero_triple zil_sold bal_subbed t_r;
             match any_param_zero with
             |   False =>
                 blocknumber <- & BLOCKNUMBER;
                 block_valid = ble blocknumber deadline;
                 match block_valid with
                 |   True =>
-                    tokens_bought = input_price zil_sold bal_new t_r;
+                    tokens_bought = input_price zil_sold bal_subbed t_r;
                     enough_bought = le_int min_tokens tokens_bought;
                     match enough_bought with
                     |   True =>
                         msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
-                                to : caller; tokens : tokens_bought};
+                                to : buyer; tokens : tokens_bought};
                         msgs = one_msg msg;
                         send msgs
                     |   False =>
-                        msg = { _tag : "ZilToTokenInputFailure"; _recipient : caller; _amount : _amount;
-                                token : token; caller : caller;
+                        msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+                                token : token;
                                 zil_sold : zil_sold; min_tokens : min_tokens;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
                                 message : "min_tokens not met"};
@@ -190,8 +189,8 @@ transition ZilToTokenInput (token : ByStr20, caller : ByStr20,
                         send msgs
                     end
                 |   False =>
-                    msg = { _tag : "ZilToTokenInputFailure"; _recipient : caller; _amount : _amount;
-                            token : token; caller : caller;
+                    msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+                            token : token;
                             zil_sold : zil_sold; min_tokens : min_tokens;
                             deadline : deadline; buyer : buyer; recipient : recipient;
                             message : "Order expired"};
@@ -199,8 +198,8 @@ transition ZilToTokenInput (token : ByStr20, caller : ByStr20,
                     send msgs
                 end
             |   True =>
-                msg = { _tag : "ZilToTokenInputFailure"; _recipient : caller; _amount : _amount;
-                        token : token; caller : caller;
+                msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+                        token : token;
                         zil_sold : zil_sold; min_tokens : min_tokens;
                         deadline : deadline; buyer : buyer; recipient : recipient;
                         message : "One of _balance, token balance, zil_sold is zero"};
@@ -217,6 +216,12 @@ transition ZilToTokenSwapInput (token : ByStr20, min_tokens : Uint128,
         deadline : BNum)
     (* payable *)
     (* calls ZilToTokenInput() *)
+    accept;
+    msg = { _tag : "ZilToTokenInput"; _recipient : _this_address; _amount : zero;
+            token : token; zil_sold : _amount; min_tokens : min_tokens;
+            deadline : deadline; buyer : _sender; recipient : _sender };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
@@ -685,9 +690,8 @@ transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
 end
 
 (* Response Functions *)
+
 transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
-    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
     match sender with
     |   _this_address =>
         totalSupply <- token_totalSupplies[_sender];
