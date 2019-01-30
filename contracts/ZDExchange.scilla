@@ -442,6 +442,71 @@ transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
     end
 end
 
+transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20)
+    (* private *)
+    (* calls FungibleToken.TransferFrom() *)
+    match _sender with
+    |   _this_address =>
+        token_reserve <- token_totalSupplies[token];
+        match token_reserve with
+        |   Some t_r =>
+            bal <- _balance;
+            any_param_zero = any_zero_double zil_bought t_r;
+            match any_param_zero with
+            |   False =>
+                blocknumber <- & BLOCKNUMBER;
+                block_valid = ble blocknumber deadline;
+                match block_valid with
+                |   True =>
+                    tokens_sold = output_price zil_bought t_r bal;
+                    enough_sold = le_int tokens_sold max_tokens;
+                    match enough_sold with
+                    |   True =>
+                        tx_pending_debt := zil_bought;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : buyer; to : _this_address; tokens : tokens_sold};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   False =>
+                        msg = { _tag : "TokenToZilOutputFailure"; _recipient : buyer; _amount : zero;
+                                token : token;
+                                zil_bought : zil_bought; max_tokens : max_tokens;
+                                deadline : deadline; buyer : buyer; recipient : recipient;
+                                message : "Maximum order surpassed"};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   False =>
+                    msg = { _tag : "TokenToZilOutputFailure"; _recipient : buyer; _amount : zero;
+                            token : token;
+                            zil_bought : zil_bought; max_tokens : max_tokens;
+                            deadline : deadline; buyer : buyer; recipient : recipient;
+                            message : "Order expired"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   True =>
+                msg = { _tag : "TokenToZilOutputFailure"; _recipient : buyer; _amount : zero;
+                        token : token;
+                        zil_bought : zil_bought; max_tokens : max_tokens;
+                        deadline : deadline; buyer : buyer; recipient : recipient;
+                        message : "One of zil_bought, token_reserve is zero"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   None =>
+            msg = { _tag : "TokenToZilOutputFailure"; _recipient : buyer; _amount : zero;
+                    token : token;
+                    zil_bought : zil_bought; max_tokens : max_tokens;
+                    deadline : deadline; buyer : buyer; recipient : recipient;
+                    message : "Token not found"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
 transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
         max_tokens : Uint128, deadline : BNum)
     (* calls FungibleToken.TransferFrom() *)
