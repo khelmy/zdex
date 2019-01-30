@@ -154,11 +154,9 @@ end
 transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
-    (* payable *)
     (* calls FungibleToken.Transfer() *)
     match _sender with
     |   _this_address =>
-        accept;
         token_reserve <- token_totalSupplies[token];
         match token_reserve with
         |   Some t_r =>
@@ -227,8 +225,24 @@ end
 transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
         deadline : BNum, recipient : ByStr20)
     (* payable *)
-    (* calls FungibleToken.Transfer() *)
-    (* returns Uint128 *)
+    (* calls ZilToTokenInput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "ZilToTokenTransferInputFailure"; _recipient : _sender; _amount : zero;
+                token : token; zil_sold : _amount; min_tokens : min_tokens;
+                deadline : deadline; buyer : _sender; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        accept;
+        msg = { _tag : "ZilToTokenInput"; _recipient : _this_address; _amount : zero;
+                token : token; zil_sold : _amount; min_tokens : min_tokens;
+                deadline : deadline; buyer : _sender; recipient : recipient };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
@@ -298,17 +312,6 @@ transition TokenToTokenTransferOutput (token : ByStr20, tokens_bought : Uint128,
     (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
     (* returns Uint128 *)
 end
-
-(** Deposit withdrawal Transitions **)
-
-transition WithdrawTokens (token : ByStr20, tokens : Uint128)
-    (* returns Bool in withdrawn *)
-end
-
-transition WithdrawTokensFrom (token : ByStr20, from: ByStr20, tokens : Uint128)
-    (* returns Bool in withdrawnFrom *)
-end
-
 
 (** FungibleToken-like Transitions **)
 
