@@ -509,14 +509,35 @@ end
 
 transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
         max_tokens : Uint128, deadline : BNum)
-    (* calls FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToZilOutput() *)
+    msg = { _tag : "TokenToZilOutput"; _recipient : _this_address; _amount : zero;
+            token : token;
+            zil_bought : zil_bought; max_tokens : max_tokens;
+            deadline : deadline; buyer : _sender; recipient : _sender };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition TokenToZilTransferOutput (token : ByStr20, zil_bought : Uint128,
         max_tokens : Uint128, deadline : BNum, recipient : ByStr20)
-    (* calls FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToZilOutput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "TokenToZilTransferOutputFailure"; _recipient : _sender; _amount : zero;
+                token : token; zil_bought : zil_bought; max_tokens : max_tokens;
+                deadline : deadline; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "TokenToZilOutput"; _recipient : _this_address; _amount : zero;
+                token : token;
+                zil_bought : zil_bought; max_tokens : max_tokens;
+                deadline : deadline; buyer : _sender; recipient : recipient };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition TokenToTokenSwapInput (token : ByStr20, tokens_sold : Uint128,
