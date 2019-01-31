@@ -8,6 +8,7 @@ let fee_ratio_kept = Uint128 997
 let fee_ratio_denom = Uint128 1000
 let one = Uint128 1
 let zero = Uint128 0
+let ten_e_six = Uint128 1000000
 let none_uint = None {Uint128}
 
 (* returns Uint128 *)
@@ -143,8 +144,164 @@ end
 transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
         max_tokens : Uint128, deadline : BNum)
     (* payable *)
-    (* Modifies fields token_totalSupplies, token_balances *)
+    (* Calls AddLiquidityNonzero(), AddLiquidityZero() *)
     (* returns Uint128 *)
+    blocknumber <- & BLOCKNUMBER;
+    block_valid = ble blocknumber deadline;
+    match block_valid with
+    |   True =>
+        any_param_zero = any_zero_double max_tokens _amount;
+        match any_param_zero with
+        |   False =>
+            total_liquidity <- token_totalSupplies[token];
+            match total_liquidity with
+            |   Some t_l =>
+                accept;
+                zero_liquidity = builtin eq t_l zero;
+                match zero_liquidity with
+                |   False =>
+                    msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
+                            token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
+                            deadline : deadline; total_liquidity : t_l; sender : _sender;
+                            zil_sold : _amount};
+                    msgs = one_msg msg;
+                    send msgs
+                |   True =>
+                    msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
+                            token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
+                            deadline : deadline; total_liquidity : t_l; sender : _sender;
+                            zil_sold : _amount};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
+                        token : token; min_liquidity : min_liquidity;
+                        max_tokens : max_tokens; deadline : deadline;
+                        message : "Token not found"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   True =>
+            msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
+                    token : token; min_liquidity : min_liquidity;
+                    max_tokens : max_tokens; deadline : deadline;
+                    message : "One of max_tokens, _amount is zero"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   False =>
+        msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
+                token : token; min_liquidity : min_liquidity;
+                max_tokens : max_tokens; deadline : deadline;
+                message : "Order expired"};
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
+        max_tokens : Uint128, deadline : BNum, total_liquidity : Uint128,
+        sender : ByStr20, zil_sold : Uint128)
+    (* private *)
+    (* Modifies fields token_totalSupplies, token_balances *)
+    (* calls FungibleToken.TransferFrom() *)
+    (* Nonzero liquidity case of AddLiquidity *)
+    match _sender with
+    |   _this_address =>
+        min_liq_zero = builtin eq min_liquidity zero;
+        match min_liq_zero with
+        |   False =>
+            token_reserve <- token_totalSupplies[token];
+            match token_reserve with
+            |   Some t_r =>
+                bal <- _balance;
+                zil_reserve = builtin sub bal zil_sold;
+                amount_t_r = builtin mul zil_sold t_r;
+                amount_tr_zr = builtin div amount_t_r zil_reserve;
+                token_amount = builtin add amount_tr_zr one;
+                amount_t_l = builtin mul zil_sold total_liquidity;
+                liquidity_minted = builtin div amount_t_l zil_reserve;
+                enough_tokens = le_int token_amount max_tokens;
+                enough_liquidity = le_int min_liquidity liquidity_minted;
+                order_met = orb enough_tokens enough_liquidity;
+                match order_met with
+                |   True =>
+                    totalSupply_new = builtin add total_liquidity liquidity_minted;
+                    sender_balance <- token_balances[token][sender];
+                    match sender_balance with
+                    |   Some s_b =>
+                        s_b_new = builtin add s_b liquidity_minted;
+                        token_balances[token][sender] := s_b_new;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : sender; to : _this_address; tokens : token_amount};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   None =>
+                        token_balances[token][sender] := liquidity_minted;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : sender; to : _this_address; tokens : token_amount};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   False =>
+                    msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zil_sold;
+                            token : token; min_liquidity : min_liquidity;
+                            max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                            sender : sender; zil_sold : zil_sold;
+                            message : "Token not found"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zil_sold;
+                        token : token; min_liquidity : min_liquidity;
+                        max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                        sender : sender; zil_sold : zil_sold;
+                        message : "Order not met"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   True =>
+            msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zil_sold;
+                    token : token; min_liquidity : min_liquidity;
+                    max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                    sender : sender; zil_sold : zil_sold;
+                    message : "min_liquidity is zero"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
+transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
+        max_tokens : Uint128, deadline : BNum, total_liquidity : Uint128,
+        sender : ByStr20, zil_sold : Uint128)
+    (* private *)
+    (* Modifies fields token_totalSupplies, token_balances *)
+    (* calls FungibleToken.TransferFrom() *)
+    (* Zero liquidity case of AddLiquidity *)
+    match _sender with
+    |   _this_address =>
+        enough_sold = le_int ten_e_six zil_sold;
+        match enough_sold with
+        |   True =>
+            token_totalSupplies[token] := zil_sold;
+            token_balances[token][sender] := zil_sold;
+            msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                    from : sender; to : _this_address; tokens : max_tokens};
+            msgs = one_msg msg;
+            send msgs
+        |   False =>
+            msg = { _tag : "AddLiquidityZeroFailure"; _recipient : sender; _amount : zil_sold;
+                    token : token; min_liquidity : min_liquidity;
+                    max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                    sender : sender; zil_sold : zil_sold;
+                    message : "Order not met"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
 end
 
 transition RemoveLiquidity (token : ByStr20, min_zil : Uint128,
@@ -998,3 +1155,6 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         end
     end
 end
+
+(* TODO: Add failure responses (asser TransferFrom, for example) *)
+(* TODO: Figure out totalSupply mechanics *)
