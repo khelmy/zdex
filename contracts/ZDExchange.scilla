@@ -49,7 +49,7 @@ let any_zero_triple =
     fun (third : Uint128) =>
         let fs_zero = any_zero_double first second in
         let t_zero = builtin eq third zero in
-        andb fs_zero t_zero
+        orb fs_zero t_zero
 
 let ble =
     fun (b1 : BNum ) =>
@@ -97,6 +97,7 @@ field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 (* field token_names : Map ByStr20 String = Emp ByStr20 String *)
 (* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
 (* field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32 *)
+field token_reserves : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
@@ -105,7 +106,7 @@ field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp B
 field tx_pending_debt : Uint128 = zero
 
 transition CreateMarket (token : ByStr20)
-    (* Modifies fields tokenCount, id_to_token token_totalSupplies, *)
+    (* Modifies fields tokenCount, id_to_token token_totalSupplies, token_reserves *)
     (* token_balances, token_allowances *)
     (* if returned, modifies token_names, token_symbols, token_decimals *)
     (* returns Bool in created *)
@@ -125,6 +126,8 @@ transition CreateMarket (token : ByStr20)
         tokenCount := tC_new;
         (* Update id_to_token *)
         id_to_token[tC_new] := token;
+        (* Update token_reserves *)
+        token_reserves[token] := zero;
         (* Update token_totalSupplies *)
         token_totalSupplies[token] := zero;
         (* Update token_balances *)
@@ -206,13 +209,14 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
     (* private *)
     (* Modifies fields token_totalSupplies, token_balances *)
     (* calls FungibleToken.TransferFrom() *)
+    (* sends funds *)
     (* Nonzero liquidity case of AddLiquidity *)
     match _sender with
     |   _this_address =>
         min_liq_zero = builtin eq min_liquidity zero;
         match min_liq_zero with
         |   False =>
-            token_reserve <- token_totalSupplies[token];
+            token_reserve <- token_reserves[token];
             match token_reserve with
             |   Some t_r =>
                 bal <- _balance;
@@ -280,6 +284,7 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
     (* private *)
     (* Modifies fields token_totalSupplies, token_balances *)
     (* calls FungibleToken.TransferFrom() *)
+    (* sends funds *)
     (* Zero liquidity case of AddLiquidity *)
     match _sender with
     |   _this_address =>
@@ -304,11 +309,105 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
     end
 end
 
-transition RemoveLiquidity (token : ByStr20, min_zil : Uint128,
-        deadline : BNum, recipient : ByStr20)
-    (* Modifies fields token_totalSupplies, token_balances *)
+transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128,
+        min_tokens : Uint128, deadline : BNum, recipient : ByStr20)
+    (* Modifies fields token_totalSupplies, token_balances, tx_pending_debt *)
     (* returns Uint128 *)
-    (* sends funds *)
+    (* calls FungibleToken.Transfer() *)
+    any_param_zero = any_zero_triple amount min_zil min_tokens;
+    match any_param_zero with
+    |   False =>
+        blocknumber <- & BLOCKNUMBER;
+        block_valid = ble blocknumber deadline;
+        match block_valid with
+        |   True =>
+            total_liquidity <- token_totalSupplies[token];
+            match total_liquidity with
+            |   Some t_l =>
+                t_l_zero = builtin eq t_l zero;
+                match t_l_zero with
+                |   False =>
+                    token_reserve <- token_reserves[token];
+                    match token_reserve with
+                    |   Some t_r =>
+                        bal <- _balance;
+                        amount_bal = builtin mul amount bal;
+                        zil_amount = builtin div amount_bal t_l;
+                        amount_t_r = builtin mul amount t_r;
+                        token_amount = builtin div amount_t_r t_l;
+                        enough_zil = le_int min_zil zil_amount;
+                        enough_tokens = le_int min_tokens token_amount;
+                        order_met = orb enough_tokens enough_zil;
+                        match order_met with
+                        |   True =>
+                            token_balance <- token_balances[token][_sender];
+                            match token_balance with
+                            |   Some t_b =>
+                                t_b_new = builtin sub t_b amount;
+                                token_balances[token][_sender] := t_b_new;
+                                t_l_new = builtin sub t_l amount;
+                                token_totalSupplies[token] := t_l_new;
+                                tx_pending_debt := zil_amount;
+                                msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
+                                        to : recipient; tokens : token_amount};
+                                msgs = one_msg msg;
+                                send msgs
+                            |   None =>
+                                msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                                        token : token; amount : amount; min_zil : min_zil;
+                                        min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                                        message : "Balance not found"};
+                                msgs = one_msg msg;
+                                send msgs
+                            end
+                        |   False =>
+                            msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                                    token : token; amount : amount; min_zil : min_zil;
+                                    min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                                    message : "Order not met"};
+                            msgs = one_msg msg;
+                            send msgs
+                        end
+                    |   None =>
+                        msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                                token : token; amount : amount; min_zil : min_zil;
+                                min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                                message : "Token not found"};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   True =>
+                    msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                            token : token; amount : amount; min_zil : min_zil;
+                            min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                            message : "Insufficient liquidity"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                        token : token; amount : amount; min_zil : min_zil;
+                        min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                        message : "Token not found"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   False =>
+            msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                    token : token; amount : amount; min_zil : min_zil;
+                    min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                    message : "Order expired"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   True =>
+        msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
+                token : token; amount : amount; min_zil : min_zil;
+                min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+                message : "One of amount, min_zil, min_tokens is zero"};
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Uint128,
@@ -317,7 +416,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
     (* calls FungibleToken.Transfer() *)
     match _sender with
     |   _this_address =>
-        token_reserve <- token_totalSupplies[token];
+        token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
             bal <- _balance;
@@ -417,7 +516,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
     (* Refunds provided through TransferSuccess *)
     match _sender with
     |   _this_address =>
-        token_reserve <- token_totalSupplies[token];
+        token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
             bal <- _balance;
@@ -509,7 +608,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
     (* Payment provided through TransferFromSuccess *)
     match _sender with
     |   _this_address =>
-        token_reserve <- token_totalSupplies[token];
+        token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
             bal <- _balance;
@@ -605,7 +704,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
     (* calls FungibleToken.TransferFrom() *)
     match _sender with
     |   _this_address =>
-        token_reserve <- token_totalSupplies[token];
+        token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
             bal <- _balance;
@@ -891,7 +990,7 @@ end
 transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
     (* returns Uint128 in price *)
     (* zero in price indicates failure *)
-    token_reserve <- token_totalSupplies[token];
+    token_reserve <- token_reserves[token];
     match token_reserve with
     |   None =>
         msg = { _tag : "ZilToTokenInputPriceFailure"; _recipient : _sender; _amount : zero;
@@ -926,7 +1025,7 @@ end
 transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
     (* returns Uint128 in price *)
     (* zero in price indicates failure *)
-    token_reserve <- token_totalSupplies[token];
+    token_reserve <- token_reserves[token];
     match token_reserve with
     |   None =>
         msg = { _tag : "ZilToTokenOutputPriceFailure"; _recipient : _sender; _amount : zero;
@@ -961,7 +1060,7 @@ end
 transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
     (* returns Uint128 in price *)
     (* zero in price indicates failure *)
-    token_reserve <- token_totalSupplies[token];
+    token_reserve <- token_reserves[token];
     match token_reserve with
     |   None =>
         msg = { _tag : "TokenToZilInputPriceFailure"; _recipient : _sender; _amount : zero;
@@ -996,7 +1095,7 @@ end
 transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
     (* returns Uint128 in price *)
     (* zero in price indicates failure *)
-    token_reserve <- token_totalSupplies[token];
+    token_reserve <- token_reserves[token];
     match token_reserve with
     |   None =>
         msg = { _tag : "TokenToZilOutputPriceFailure"; _recipient : _sender; _amount : zero;
@@ -1107,14 +1206,15 @@ end
 (* Response Functions *)
 
 transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    (* modifies field token_reserves *)
     (* sends funds *)
     match sender with
     |   _this_address =>
-        totalSupply <- token_totalSupplies[_sender];
-        match totalSupply with
-        |   Some tS =>
-            tS_new = builtin sub tS amount;
-            token_totalSupplies[_sender] := tS_new;
+        token_reserve <- token_reserves[_sender];
+        match token_reserve with
+        |   Some t_r =>
+            t_r_new = builtin sub t_r amount;
+            token_reserves[_sender] := t_r_new;
             debt <- tx_pending_debt;
             tx_pending_debt := zero;
             msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : debt;
@@ -1132,14 +1232,15 @@ transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint
 end
 
 transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    (* modifies field token_reserves *)
     (* sends funds *)
     match recipient with
     |   _this_address =>
-        totalSupply <- token_totalSupplies[_sender];
-        match totalSupply with
-        |   Some tS =>
-            tS_new = builtin add tS amount;
-            token_totalSupplies[_sender] := tS_new;
+        token_reserve <- token_reserves[_sender];
+        match token_reserve with
+        |   Some t_r =>
+            t_r_new = builtin add t_r amount;
+            token_reserves[_sender] := t_r_new;
             debt <- tx_pending_debt;
             tx_pending_debt := zero;
             msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
@@ -1156,5 +1257,4 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
     end
 end
 
-(* TODO: Add failure responses (asser TransferFrom, for example) *)
-(* TODO: Figure out totalSupply mechanics *)
+(* TODO: Add failure responses (assert TransferFrom, for example) *)
