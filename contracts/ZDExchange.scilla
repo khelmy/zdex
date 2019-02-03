@@ -10,6 +10,8 @@ let one = Uint128 1
 let zero = Uint128 0
 let ten_e_six = Uint128 1000000
 let none_uint = None {Uint128}
+let none_bystr = None {ByStr20}
+let none_bnum = None {BNum}
 
 (* returns Uint128 *)
 let input_price =
@@ -104,6 +106,13 @@ field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp B
 
 (* Modify state to keep track of transfer funds *)
 field tx_pending_debt : Uint128 = zero
+(* Modify state to keep track of TokenToToken[In|Out]put *)
+(* Usually None. Takes a value when there's a pending TokenToToken[In|Out]put *)
+field t_t_token : Option ByStr20 = none_bystr
+field t_t_mtb : Option Uint128 = none_uint
+field t_t_deadline : Option BNum = none_bnum
+field t_t_recipient : Option ByStr20 = none_bystr
+
 
 transition CreateMarket (token : ByStr20)
     (* Modifies fields tokenCount, id_to_token token_totalSupplies, token_reserves *)
@@ -796,6 +805,163 @@ transition TokenToZilTransferOutput (token : ByStr20, zil_bought : Uint128,
     end
 end
 
+transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
+        min_tokens_bought : Uint128, min_zil_bought : Uint128,
+        deadline : BNum, buyer : ByStr20, recipient : ByStr20,
+        token_other : ByStr20)
+    (* private *)
+    (* calls FungibleToken.TransferFrom() *)
+    match _sender with
+    |   _this_address =>
+        token_reserve <- token_reserves[token];
+        match token_reserve with
+        |   Some t_r =>
+            bal <- _balance;
+            any_min_zero = any_zero_double min_tokens_bought min_zil_bought;
+            reserve_sold_zero = any_zero_double tokens_sold t_r;
+            any_param_zero = orb any_min_zero reserve_sold_zero;
+            match any_param_zero with
+            |   False =>
+                blocknumber <- & BLOCKNUMBER;
+                block_valid = ble blocknumber deadline;
+                match block_valid with
+                |   True =>
+                    zil_bought = input_price tokens_sold t_r bal;
+                    enough_sold = le_int min_zil_bought zil_bought;
+                    match enough_sold with
+                    |   True =>
+                        option_t_other = Some {ByStr20} token_other;
+                        t_t_token := option_t_other;
+                        option_mtb = Some {Uint128} min_tokens_bought;
+                        t_t_mtb := option_mtb;
+                        option_deadline = Some {BNum} deadline;
+                        t_t_deadline := option_deadline;
+                        option_recipient = Some {ByStr20} recipient;
+                        t_t_recipient := none_bystr;
+                        tx_pending_debt := zil_bought;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : buyer; to : _this_address; tokens : tokens_sold};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   False =>
+                        msg = { _tag : "TokenToTokenInputFailure"; _recipient : buyer; _amount : zero;
+                                token : token; tokens_sold : tokens_sold;
+                                min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                                deadline : deadline; buyer : buyer; recipient : recipient;
+                                token_other : token_other;
+                                message : "Order not met"};
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   False =>
+                    msg = { _tag : "TokenToTokenInputFailure"; _recipient : buyer; _amount : zero;
+                            token : token; tokens_sold : tokens_sold;
+                            min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                            deadline : deadline; buyer : buyer; recipient : recipient;
+                            token_other : token_other;
+                            message : "Order expired"};
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   True =>
+                msg = { _tag : "TokenToTokenInputFailure"; _recipient : buyer; _amount : zero;
+                        token : token; tokens_sold : tokens_sold;
+                        min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                        deadline : deadline; buyer : buyer; recipient : recipient;
+                        token_other : token_other;
+                        message : "One of tokens_sold, token_reserve, min_tokens_bought, min_zil_bought is zero"};
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   None =>
+            msg = { _tag : "TokenToTokenInputFailure"; _recipient : buyer; _amount : zero;
+                    token : token; tokens_sold : tokens_sold;
+                    min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                    deadline : deadline; buyer : buyer; recipient : recipient;
+                    token_other : token_other;
+                    message : "Token not found"};
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
+transition TokenToTokenInputCtd ()
+    (* private *)
+    (* calls ZilToTokenTransferInput() *)
+    (* The part of TokenToTokenInput after the first call to TransferFrom *)
+    match _sender with
+    |   _this_address =>
+        token_pending <- t_t_token;
+        match token_pending with
+        |   Some token =>
+            mtb_pending <- t_t_mtb;
+            match mtb_pending with
+            |   Some mtb =>
+                deadline_pending <- t_t_deadline;
+                match deadline_pending with
+                |   Some deadline =>
+                    recipient_pending <- t_t_recipient;
+                    match recipient_pending with
+                    |   Some recipient =>
+                        t_t_token := none_bystr;
+                        t_t_mtb := none_uint;
+                        t_t_deadline := none_bnum;
+                        t_t_recipient := none_bystr;
+                        debt <- tx_pending_debt;
+                        tx_pending_debt := zero;
+                        msg = { _tag : "ZilToTokenTransferInput"; _recipient : _this_address; _amount : debt;
+                                token : token; min_tokens : mtb; deadline : deadline; recipient : recipient };
+                        msgs = one_msg msg;
+                        send msgs
+                    (* No good way to send back, so emit events *)
+                    |   None =>
+                        t_t_token := none_bystr;
+                        t_t_mtb := none_uint;
+                        t_t_deadline := none_bnum;
+                        t_t_recipient := none_bystr;
+                        debt <- tx_pending_debt;
+                        tx_pending_debt := zero;
+                        e = {_eventname : "TokenToTokenInputCtdFailure";
+                            message : "recipient not found"};
+                        event e
+                    end
+                |   None =>
+                    t_t_token := none_bystr;
+                    t_t_mtb := none_uint;
+                    t_t_deadline := none_bnum;
+                    t_t_recipient := none_bystr;
+                    debt <- tx_pending_debt;
+                    tx_pending_debt := zero;
+                    e = {_eventname : "TokenToTokenInputCtdFailure";
+                        message : "deadline not found"};
+                    event e
+                end
+            |   None =>
+                t_t_token := none_bystr;
+                t_t_mtb := none_uint;
+                t_t_deadline := none_bnum;
+                t_t_recipient := none_bystr;
+                debt <- tx_pending_debt;
+                tx_pending_debt := zero;
+                e = {_eventname : "TokenToTokenInputCtdFailure";
+                    message : "min_tokens_bought not found"};
+                event e
+            end
+        |   None =>
+            t_t_token := none_bystr;
+            t_t_mtb := none_uint;
+            t_t_deadline := none_bnum;
+            t_t_recipient := none_bystr;
+            debt <- tx_pending_debt;
+            tx_pending_debt := zero;
+            e = {_eventname : "TokenToTokenInputCtdFailure";
+                message : "Token not found"};
+            event e
+        end
+    end
+end
+
 transition TokenToTokenSwapInput (token : ByStr20, tokens_sold : Uint128,
         min_tokens_bought : Uint128, min_zil_bought : Uint128,
         deadline : BNum, token_other : ByStr20)
@@ -1241,12 +1407,20 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         |   Some t_r =>
             t_r_new = builtin add t_r amount;
             token_reserves[_sender] := t_r_new;
-            debt <- tx_pending_debt;
-            tx_pending_debt := zero;
-            msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
-                    sender : sender; recipient : recipient; amount : amount };
-            msgs = one_msg msg;
-            send msgs
+            token_pending <- t_t_token;
+            match token_pending with
+            |   None =>
+                debt <- tx_pending_debt;
+                tx_pending_debt := zero;
+                msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                        sender : sender; recipient : recipient; amount : amount };
+                msgs = one_msg msg;
+                send msgs
+            |   Some token =>
+                msg = { _tag : "TokenToTokenInputCtd"; _recipient : _this_address; _amount : zero };
+                msgs = one_msg msg;
+                send msgs
+            end
         |   None =>
             msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
