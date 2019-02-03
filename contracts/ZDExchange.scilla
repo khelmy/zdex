@@ -810,6 +810,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20,
         token_other : ByStr20)
     (* private *)
+    (* Modifies fields t_t_token, t_t_mtb, t_t_deadline, t_t_recipient, tx_pending_debt *)
     (* calls FungibleToken.TransferFrom() *)
     match _sender with
     |   _this_address =>
@@ -888,6 +889,7 @@ end
 
 transition TokenToTokenInputCtd ()
     (* private *)
+    (* Modifies fields t_t_token, t_t_mtb, t_t_deadline, t_t_recipient, tx_pending_debt *)
     (* calls ZilToTokenTransferInput() *)
     (* The part of TokenToTokenInput after the first call to TransferFrom *)
     match _sender with
@@ -965,15 +967,39 @@ end
 transition TokenToTokenSwapInput (token : ByStr20, tokens_sold : Uint128,
         min_tokens_bought : Uint128, min_zil_bought : Uint128,
         deadline : BNum, token_other : ByStr20)
-    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToTokenInput() *)
+    msg = { _tag : "TokenToTokenInput"; _recipient : _this_address; _amount : zero;
+            token : token; tokens_sold : tokens_sold;
+            min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+            deadline : deadline; buyer : _sender; recipient : _sender;
+            token_other : token_other };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition TokenToTokenTransferInput(token : ByStr20, tokens_sold : Uint128,
         min_tokens_bought : Uint128, min_zil_bought : Uint128,
         deadline : BNum, token_other : ByStr20, recipient : ByStr20)
-    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToTokenInput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "TokenToTokenTransferInputFailure"; _recipient : _sender; _amount : zero;
+                token : token; tokens_sold : tokens_sold;
+                min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                deadline : deadline; token_other : token_other; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "TokenToTokenInput"; _recipient : _this_address; _amount : zero;
+                token : token; tokens_sold : tokens_sold;
+                min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                deadline : deadline; buyer : _sender; recipient : _sender;
+                token_other : token_other };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 transition TokenToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
@@ -1399,6 +1425,7 @@ end
 
 transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
     (* modifies field token_reserves *)
+    (* Calls TokenToTokenInputCtd() *)
     (* sends funds *)
     match recipient with
     |   _this_address =>
