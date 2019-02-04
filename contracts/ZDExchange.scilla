@@ -1423,7 +1423,7 @@ transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
         any_param_zero = any_zero_triple tokens_sold t_r bal;
         match any_param_zero with
         |   True =>
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TokenToZilInputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; tokens_sold : tokens_sold;
                     price : zero;
                     message : "One of _balance, token balance, tokens_sold is zero" };
@@ -1431,7 +1431,7 @@ transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
             send msgs
         |   False =>
             price = input_price tokens_sold t_r bal;
-            msg = { _tag : "Main"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "TokenToZilInputPriceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokens_sold : tokens_sold;
                     price : price };
             msgs = one_msg msg;
