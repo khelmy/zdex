@@ -1028,7 +1028,7 @@ transition TokenToTokenTransferInput(token : ByStr20, tokens_sold : Uint128,
         msg = { _tag : "TokenToTokenInput"; _recipient : _this_address; _amount : zero;
                 token : token; tokens_sold : tokens_sold;
                 min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
-                deadline : deadline; buyer : _sender; recipient : _sender;
+                deadline : deadline; buyer : _sender; recipient : recipient;
                 token_other : token_other };
         msgs = one_msg msg;
         send msgs
@@ -1138,15 +1138,39 @@ end
 transition TokenToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
         max_tokens_sold : Uint128, max_zil_sold : Uint128,
         deadline : BNum, token_other : ByStr20)
-    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToTokenOutput() *)
+    msg = { _tag : "TokenToTokenOutput"; _recipient : _this_address; _amount : zero;
+            token : token; tokens_bought : tokens_bought;
+            max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
+            deadline : deadline; buyer : _sender; recipient : _sender;
+            token_other : token_other };
+    msgs = one_msg msg;
+    send msgs
 end
 
 transition TokenToTokenTransferOutput (token : ByStr20, tokens_bought : Uint128,
         max_tokens_sold : Uint128, max_zil_sold : Uint128,
         deadline : BNum, token_other : ByStr20, recipient : ByStr20)
-    (* calls FungibleToken.Transfer(), FungibleToken.TransferFrom() *)
-    (* returns Uint128 *)
+    (* calls TokenToTokenOutput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   True =>
+        msg = { _tag : "TokenToTokenTransferOutputFailure"; _recipient : _sender; _amount : zero;
+                token : token; tokens_bought : tokens_bought;
+                max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
+                deadline : deadline; token_other : token_other; recipient : recipient;
+                message : "ZDExchange cannot be recipient" };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "TokenToTokenOutput"; _recipient : _this_address; _amount : zero;
+                token : token; tokens_bought : tokens_bought;
+                max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
+                deadline : deadline; buyer : _sender; recipient : recipient;
+                token_other : token_other };
+        msgs = one_msg msg;
+        send msgs
+    end
 end
 
 (** FungibleToken-like Transitions **)
