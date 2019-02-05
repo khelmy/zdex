@@ -79,6 +79,16 @@ let min_int =
     b
   end
 
+let max_int =
+  fun (a : Uint128) => fun (b : Uint128) =>
+  let alt = builtin lt a b in
+  match alt with
+  | True =>
+    b
+  | False =>
+    a
+  end
+
 let le_int =
   fun (a : Uint128) => fun (b : Uint128) =>
     let x = builtin lt a b in
@@ -105,6 +115,9 @@ field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
+(* Modify state to keep track of transfer tokens *)
+field t_b_pending : Option Uint128 = none_uint
+field t_tS_pending : Option Uint128 = none_uint
 (* Modify state to keep track of transfer funds *)
 (* tx_pending_debt if successful, tx_debt_failure if unsuccessful *)
 field tx_pending_debt : Uint128 = zero
@@ -245,17 +258,21 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
                 match order_met with
                 |   True =>
                     totalSupply_new = builtin add total_liquidity liquidity_minted;
+                    option_tS_new = Some {Uint128} totalSupply_new;
+                    t_tS_pending := option_tS_new;
                     sender_balance <- token_balances[token][sender];
                     match sender_balance with
                     |   Some s_b =>
                         s_b_new = builtin add s_b liquidity_minted;
-                        token_balances[token][sender] := s_b_new;
+                        option_s_b_new = Some {Uint128} s_b_new;
+                        t_b_pending := option_s_b_new;
                         msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
                                 from : sender; to : _this_address; tokens : token_amount};
                         msgs = one_msg msg;
                         send msgs
                     |   None =>
-                        token_balances[token][sender] := liquidity_minted;
+                        option_liquidity_minted = Some {Uint128} liquidity_minted;
+                        t_b_pending := option_liquidity_minted;
                         msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
                                 from : sender; to : _this_address; tokens : token_amount};
                         msgs = one_msg msg;
@@ -304,8 +321,9 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
         enough_sold = le_int ten_e_six zil_sold;
         match enough_sold with
         |   True =>
-            token_totalSupplies[token] := zil_sold;
-            token_balances[token][sender] := zil_sold;
+            option_zil_sold = Some {Uint128} zil_sold;
+            t_tS_pending := option_zil_sold;
+            t_b_pending := option_zil_sold;
             msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
                     from : sender; to : _this_address; tokens : max_tokens};
             msgs = one_msg msg;
@@ -945,7 +963,6 @@ transition TokenToTokenCtd ()
                             t_t_mt := none_uint;
                             t_t_deadline := none_bnum;
                             t_t_recipient := none_bystr;
-                            debt <- tx_pending_debt;
                             tx_pending_debt := zero;
                             e = {_eventname : "TokenToTokenCtdFailure";
                                 message : "is_input not found"};
@@ -958,7 +975,6 @@ transition TokenToTokenCtd ()
                         t_t_mt := none_uint;
                         t_t_deadline := none_bnum;
                         t_t_recipient := none_bystr;
-                        debt <- tx_pending_debt;
                         tx_pending_debt := zero;
                         e = {_eventname : "TokenToTokenCtdFailure";
                             message : "recipient not found"};
@@ -970,7 +986,6 @@ transition TokenToTokenCtd ()
                     t_t_mt := none_uint;
                     t_t_deadline := none_bnum;
                     t_t_recipient := none_bystr;
-                    debt <- tx_pending_debt;
                     tx_pending_debt := zero;
                     e = {_eventname : "TokenToTokenCtdFailure";
                         message : "deadline not found"};
@@ -982,7 +997,6 @@ transition TokenToTokenCtd ()
                 t_t_mt := none_uint;
                 t_t_deadline := none_bnum;
                 t_t_recipient := none_bystr;
-                debt <- tx_pending_debt;
                 tx_pending_debt := zero;
                 e = {_eventname : "TokenToTokenCtdFailure";
                     message : "mt not found"};
@@ -994,7 +1008,6 @@ transition TokenToTokenCtd ()
             t_t_mt := none_uint;
             t_t_deadline := none_bnum;
             t_t_recipient := none_bystr;
-            debt <- tx_pending_debt;
             tx_pending_debt := zero;
             e = {_eventname : "TokenToTokenCtdFailure";
                 message : "Token not found"};
@@ -1613,7 +1626,7 @@ transition TransferFailure (sender : ByStr20, recipient : ByStr20, amount : Uint
 end
 
 transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
-    (* modifies field token_reserves *)
+    (* modifies field token_reserves, tx_pending_debt *)
     (* Calls TokenToTokenCtd() *)
     (* sends funds *)
     match recipient with
@@ -1628,10 +1641,32 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
             |   None =>
                 debt <- tx_pending_debt;
                 tx_pending_debt := zero;
-                msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
-                        sender : sender; recipient : recipient; amount : amount };
-                msgs = one_msg msg;
-                send msgs
+                tS_new <- t_tS_pending;
+                t_tS_pending := none_uint;
+                s_b_new <- t_b_pending;
+                t_b_pending := none_uint;
+                match s_b_new with
+                |   Some s_b =>
+                    token_balances[sender][recipient] := s_b;
+                    match tS_new with
+                    |   Some tS =>
+                        token_totalSupplies[sender] := tS;
+                        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                                sender : sender; recipient : recipient; amount : amount };
+                        msgs = one_msg msg;
+                        send msgs
+                    |   None =>
+                        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                                sender : sender; recipient : recipient; amount : amount };
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   None =>
+                    msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                            sender : sender; recipient : recipient; amount : amount };
+                    msgs = one_msg msg;
+                    send msgs
+                end
             |   Some token =>
                 msg = { _tag : "TokenToTokenCtd"; _recipient : _this_address; _amount : zero };
                 msgs = one_msg msg;
@@ -1648,7 +1683,46 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
 end
 
 transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
-
+(* modifies field token_reserves *)
+(* Calls TokenToTokenCtd() *)
+(* sends funds *)
+match recipient with
+    |   _this_address =>
+        token_reserve <- token_reserves[_sender];
+        match token_reserve with
+        |   Some t_r =>
+            t_r_new = builtin add t_r amount;
+            token_reserves[_sender] := t_r_new;
+            token_pending <- t_t_token;
+            match token_pending with
+            |   None =>
+                debt <- tx_debt_failure;
+                tx_pending_debt := zero;
+                tx_debt_failure := zero;
+                t_tS_pending := none_uint;
+                t_b_pending := none_uint;
+                msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : debt;
+                        sender : sender; recipient : recipient; amount : amount };
+                msgs = one_msg msg;
+                send msgs
+            |   Some token =>
+                t_t_is_input := none_bool;
+                t_t_token := none_bystr;
+                t_t_mt := none_uint;
+                t_t_deadline := none_bnum;
+                t_t_recipient := none_bystr;
+                tx_pending_debt := zero;
+                msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+                        sender : sender; recipient : recipient; amount : amount };
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   None =>
+            msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+                    sender : sender; recipient : recipient; amount : amount;
+                    message : "Token not Found" };
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
 end
-
-(* TODO: Add failure responses (assert TransferFrom, for example) *)
