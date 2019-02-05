@@ -106,7 +106,9 @@ field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map BySt
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
 (* Modify state to keep track of transfer funds *)
+(* tx_pending_debt if successful, tx_debt_failure if unsuccessful *)
 field tx_pending_debt : Uint128 = zero
+field tx_debt_failure : Uint128 = zero
 (* Modify state to keep track of TokenToToken[In|Out]put *)
 (* Usually None. Takes a value when there's a pending TokenToToken[In|Out]put *)
 field t_t_is_input : Option Bool = none_bool
@@ -424,6 +426,7 @@ end
 transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
+    (* Modifies field tx_debt_failure *)
     (* calls FungibleToken.Transfer() *)
     match _sender with
     |   _this_address =>
@@ -443,6 +446,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                     enough_bought = le_int min_tokens tokens_bought;
                     match enough_bought with
                     |   True =>
+                        tx_debt_failure := zil_sold;
                         msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
                                 to : buyer; tokens : tokens_bought};
                         msgs = one_msg msg;
@@ -523,6 +527,7 @@ end
 transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil : Uint128,
         deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
+    (* modifies fields tx_pending_debt, tx_debt_failure *)
     (* calls FungibleToken.Transfer() *)
     (* Refunds provided through TransferSuccess *)
     match _sender with
@@ -542,6 +547,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                     zil_sold = output_price tokens_bought max_zil t_r;
                     zil_refund = builtin sub max_zil zil_sold;
                     tx_pending_debt := zil_refund;
+                    tx_debt_failure := max_zil;
                     msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
                             to : recipient; tokens : tokens_bought};
                     msgs = one_msg msg;
@@ -1555,7 +1561,7 @@ end
 (* Response Functions *)
 
 transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
-    (* modifies field token_reserves *)
+    (* modifies field token_reserves, tx_pending_debt, tx_debt_failure *)
     (* sends funds *)
     match sender with
     |   _this_address =>
@@ -1566,12 +1572,38 @@ transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint
             token_reserves[_sender] := t_r_new;
             debt <- tx_pending_debt;
             tx_pending_debt := zero;
+            tx_debt_failure := zero;
             msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : debt;
                     sender : sender; recipient : recipient; amount : amount };
             msgs = one_msg msg;
             send msgs
         |   None =>
             msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+                    sender : sender; recipient : recipient; amount : amount;
+                    message : "Token not Found" };
+            msgs = one_msg msg;
+            send msgs
+        end
+    end
+end
+
+transition TransferFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    (* modifies fields tx_pending_debt, tx_debt_failure *)
+    (* sends funds *)
+    match sender with
+    |   _this_address =>
+        token_reserve <- token_reserves[_sender];
+        match token_reserve with
+        |   Some t_r =>
+            debt <- tx_debt_failure;
+            tx_pending_debt := zero;
+            tx_debt_failure := zero;
+            msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : debt;
+                    sender : sender; recipient : recipient; amount : amount };
+            msgs = one_msg msg;
+            send msgs
+        |   None =>
+            msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
                     message : "Token not Found" };
             msgs = one_msg msg;
@@ -1613,6 +1645,10 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
             send msgs
         end
     end
+end
+
+transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+
 end
 
 (* TODO: Add failure responses (assert TransferFrom, for example) *)
