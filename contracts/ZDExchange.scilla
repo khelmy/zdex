@@ -79,16 +79,6 @@ let min_int =
     b
   end
 
-let max_int =
-  fun (a : Uint128) => fun (b : Uint128) =>
-  let alt = builtin lt a b in
-  match alt with
-  | True =>
-    b
-  | False =>
-    a
-  end
-
 let le_int =
   fun (a : Uint128) => fun (b : Uint128) =>
     let x = builtin lt a b in
