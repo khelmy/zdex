@@ -1,0 +1,15 @@
+{
+  "name": "zdex",
+  "version": "0.0.0",
+  "author": "Karim Helmy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/khelmy/zdex/issues"
+  },
+  "homepage": "https://github.com/khelmy/zdex#readme",
+  "dependencies": {
+    "@zilliqa-js/zilliqa": "^0.5.2",
+    "bn.js": "^4.11.8",
+    "tslib": "^1.9.3"
+  }
+}
