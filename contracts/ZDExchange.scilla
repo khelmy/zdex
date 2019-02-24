@@ -85,11 +85,7 @@ let le_int =
     match x with
     | True => True
     | False =>
-      let y = builtin eq a b in
-      match y with
-      | True => True
-      | False => False
-      end
+      builtin eq a b
     end
 
 contract ZDExchange
