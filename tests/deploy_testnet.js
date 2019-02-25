@@ -36,13 +36,6 @@ const zdex_init = [
   }
 ];
 
-/*
-(owner : ByStr20,
- total_tokens : Uint128,
- name : String,
- symbol : String)
-*/
-
 const token_code = fs.readFileSync('../contracts/FungibleToken.scilla', 'utf8');
 const token_init = [
   // this parameter is mandatory for all init arrays
@@ -76,6 +69,10 @@ const token_init = [
 // Verbose deploy function
 async function deploy_v(code, init) {
   try {
+    console.log("Blockchain Info:");
+    const blockChainInfo = await zilliqa.blockchain.getBlockChainInfo();
+    console.log(blockChainInfo);
+
     // Get Balance
     const balance = await zilliqa.blockchain.getBalance(address);
     // Get Minimum Gas Price from blockchain
@@ -83,24 +80,22 @@ async function deploy_v(code, init) {
     console.log(`Your account balance is:`);
     console.log(balance.result)
     console.log(`Current Minimum Gas Price: ${minGasPrice.result}`);
-    const myGasPrice = units.toQa('15000', units.Units.Li); // Gas Price that will be used by all transactions
+    const myGasPrice = units.toQa('1000000000', units.Units.Li); // Gas Price that will be used by all transactions
     console.log(`My Gas Price ${myGasPrice.toString()}`)
     console.log('Sufficient Gas Price?');
     console.log(myGasPrice.gte(new BN(minGasPrice.result))); // Checks if your gas price is less than the minimum gas price
+    const myGasLimit = Long.fromNumber(100000);
 
     // Deploy a contract
     // Instance of class Contract
-
     const contract = zilliqa.contracts.new(code, init);
-
-
     // Deploy the contract
     const [deployTx, ctr] = await contract.deploy({
         version: VERSION,
         gasPrice: myGasPrice,
-        gasLimit: Long.fromNumber(10000)
+        gasLimit: myGasLimit
       },
-      3330,
+      3300,
       100
     );
 
@@ -123,8 +118,8 @@ async function deploy_v(code, init) {
 }
 
 async function main() {
-  var z_deploy = await deploy_v(zdex_code, zdex_init);
-  console.log(z_deploy);
+  // var z_deploy = await deploy_v(zdex_code, zdex_init);
+  // console.log(z_deploy);
   var t_deploy = await deploy_v(token_code, token_init);
   console.log(t_deploy);
 }
