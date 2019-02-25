@@ -10,11 +10,6 @@ const zilliqa = new Zilliqa('http://localhost:4200');
 
 // These are set by the core protocol, and may vary per-chain.
 // For more information: https://apidocs.zilliqa.com/?shell#getnetworkid
-/*
-const CHAIN_ID = 333;
-const MSG_VERSION = 1;
-const VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
-*/
 const VERSION = 1;
 
 const zdex_code = fs.readFileSync('../contracts/ZDExchange.scilla', 'utf8');
@@ -119,32 +114,8 @@ async function deploy_v(code, init) {
 async function main() {
   // var z_deploy = await deploy_v(zdex_code, zdex_init);
   // console.log(z_deploy);
-  const h_code = `scilla_version 0
-    library HelloWorld
-
-    contract HelloWorld
-    ()
-
-    end
-    `;
-
-  const h_init = [
-    // this parameter is mandatory for all init arrays
-    {
-      vname: "_scilla_version",
-      type: "Uint32",
-      value: "0"
-    },
-    {
-      vname: '_creation_block',
-      type: 'BNum',
-      value: '100'
-    }
-  ];
-  var h_deploy = await deploy_v(h_code, h_init);
-  console.log(h_deploy);
-  // var t_deploy = await deploy_v(token_code, token_init);
-  // console.log(t_deploy);
+  var t_deploy = await deploy_v(token_code, token_init);
+  console.log(t_deploy);
   process.exit()
 }
 
