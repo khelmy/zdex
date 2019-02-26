@@ -68,7 +68,8 @@ function init_kaya() {
   const privkey = readline.question("Please input Private Keys (10): ");
   console.log('Private key used: ' + privkey);
 
-  const [address, zdex_code, zdex_init, token_code, token_init] = init_shared(privkey, zilliqa);
+  const [address, zdex_code, zdex_init,
+    token_code, token_init] = init_shared(privkey, zilliqa);
 
   return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init];
 }
@@ -82,7 +83,8 @@ function init_testnet() {
 
   const privkey = fs.readFileSync('./privkey_testnet.txt', 'utf8');
 
-  const [address, zdex_code, zdex_init, token_code, token_init] = init_shared(privkey, zilliqa);
+  const [address, zdex_code, zdex_init,
+    token_code, token_init] = init_shared(privkey, zilliqa);
 
   return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init];
 }
@@ -136,32 +138,43 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
 }
 
 // Deploys all contracts
-// Network: 0 = Kaya, 1 = Testnet, 2 = Mainnet
+// Network: -1 = Dummy, 0 = Kaya, 1 = Testnet, 2 = Mainnet
 async function deploy_all_v(network = 0) {
-  // KAYA:
-  if (network == 0) {
-    var [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_kaya();
+  // DUMMY:
+  if (network == -1) {
+    var [zilliqa, VERSION, address, zdex_code,
+      zdex_init, token_code, token_init] = init_kaya();
+    // Dummy values
+    var z_address = '68ec958221f4fe002b7f438465e68b1bb46cbc27'
+    var t_address = '968393a8c8980185ba66edfe08658526a7dc48ea'
+  } else{
+    // KAYA:
+    if (network == 0) {
+      var [zilliqa, VERSION, address, zdex_code,
+        zdex_init, token_code, token_init] = init_kaya();
+    }
+    // TESTNET:
+    else if (network == 1) {
+      var [zilliqa, VERSION, address, zdex_code,
+        zdex_init, token_code, token_init] = init_testnet();
+    }
+    var z_address = await deploy_v(zilliqa, VERSION, address, zdex_code, zdex_init);
+    var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
   }
-  // TESTNET:
-  if (network == 1) {
-    var [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_testnet();
-  }
-  console.log("Deploying ZDExchange contract: ");
-  var z_address = await deploy_v(zilliqa, VERSION, address, zdex_code, zdex_init);
+  console.log("ZDExchange contract address: ");
   console.log(z_address);
-  console.log("Deploying FungibleToken contract: ");
-  var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
+  console.log("FungibleToken contract address: ");
   console.log(t_address);
   return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init, z_address, t_address];
 }
 
-async function main() {
-  await deploy_all_v();
+async function main(network = 0) {
+  await deploy_all_v(network);
   process.exit();
 }
 
 exports.deploy_all_v = deploy_all_v;
 
-if (typeof require != 'undefined' && require.main===module) {
-  main();
+if (typeof require != 'undefined' && require.main === module) {
+  process.argv.length == 2 ? main() : main(process.argv[2]);
 }
