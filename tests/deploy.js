@@ -4,7 +4,6 @@ const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const CP = require ('@zilliqa-js/crypto');
 const fs = require('fs');
 
-
 function init_shared(privkey, zilliqa) {
   zilliqa.wallet.addByPrivateKey(
     privkey
@@ -137,16 +136,15 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
 }
 
 async function main() {
-  // var z_deploy = await deploy_v(zdex_code, zdex_init);
-  // console.log(z_deploy);
   // KAYA:
   [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_kaya();
   // TESTNET:
   // [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_testnet();
+  // var z_deploy = await deploy_v(zdex_code, zdex_init);
+  // console.log(z_deploy);
   var t_deploy = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
   console.log(t_deploy);
   process.exit();
 }
-
 
 main();
