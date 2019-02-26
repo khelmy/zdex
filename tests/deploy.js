@@ -139,7 +139,7 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
 
 // Deploys all contracts
 // Network: -1 = Dummy, 0 = Kaya, 1 = Testnet, 2 = Mainnet
-async function deploy_all_v(network = 0) {
+async function deploy_all_v(network) {
   // DUMMY:
   if (network == -1) {
     var [zilliqa, VERSION, address, zdex_code,
