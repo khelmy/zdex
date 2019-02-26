@@ -135,24 +135,32 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
   }
 }
 
-async function deploy_all_v() {
+// Deploys all contracts
+// Network: 0 = Kaya, 1 = Testnet, 2 = Mainnet
+async function deploy_all_v(network = 0) {
   // KAYA:
-  [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_kaya();
+  if (network == 0) {
+    var [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_kaya();
+  }
   // TESTNET:
-  // [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_testnet();
+  if (network == 1) {
+    var [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_testnet();
+  }
   console.log("Deploying ZDExchange contract: ");
   var z_address = await deploy_v(zilliqa, VERSION, address, zdex_code, zdex_init);
   console.log(z_address);
   console.log("Deploying FungibleToken contract: ");
   var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
   console.log(t_address);
-  return [z_address, t_address];
+  return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init, z_address, t_address];
 }
 
 async function main() {
   await deploy_all_v();
   process.exit();
 }
+
+exports.deploy_all_v = deploy_all_v;
 
 if (typeof require != 'undefined' && require.main===module) {
   main();
