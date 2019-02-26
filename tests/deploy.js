@@ -103,7 +103,7 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
     console.log(`My Gas Price ${myGasPrice.toString()}`)
     console.log('Sufficient Gas Price?');
     console.log(myGasPrice.gte(new BN(minGasPrice.result))); // Checks if your gas price is less than the minimum gas price
-    const myGasLimit = Long.fromNumber(100000000);
+    const myGasLimit = Long.fromNumber(20000);
 
     // Deploy a contract
     // Instance of class Contract
