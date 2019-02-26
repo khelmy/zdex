@@ -101,7 +101,7 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
     console.log(`My Gas Price ${myGasPrice.toString()}`)
     console.log('Sufficient Gas Price?');
     console.log(myGasPrice.gte(new BN(minGasPrice.result))); // Checks if your gas price is less than the minimum gas price
-    const myGasLimit = Long.fromNumber(1000000000);
+    const myGasLimit = Long.fromNumber(100000000);
 
     // Deploy a contract
     // Instance of class Contract
@@ -135,16 +135,25 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
   }
 }
 
-async function main() {
+async function deploy_all_v() {
   // KAYA:
   [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_kaya();
   // TESTNET:
   // [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init] = init_testnet();
-  // var z_deploy = await deploy_v(zdex_code, zdex_init);
-  // console.log(z_deploy);
-  var t_deploy = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
-  console.log(t_deploy);
+  console.log("Deploying ZDExchange contract: ");
+  var z_address = await deploy_v(zilliqa, VERSION, address, zdex_code, zdex_init);
+  console.log(z_address);
+  console.log("Deploying FungibleToken contract: ");
+  var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
+  console.log(t_address);
+  return [z_address, t_address];
+}
+
+async function main() {
+  await deploy_all_v();
   process.exit();
 }
 
-main();
+if (typeof require != 'undefined' && require.main===module) {
+  main();
+}
