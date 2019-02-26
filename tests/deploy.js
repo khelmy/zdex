@@ -18,7 +18,7 @@ function init_shared(privkey, zilliqa) {
     {
       vname: "_scilla_version",
       type: "Uint32",
-      value: "1"
+      value: "0"
     }
   ];
 
@@ -27,7 +27,7 @@ function init_shared(privkey, zilliqa) {
     {
       vname: "_scilla_version",
       type: "Uint32",
-      value: "1"
+      value: "0"
     },
     {
       vname: "owner",
@@ -103,7 +103,7 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
     console.log(`My Gas Price ${myGasPrice.toString()}`)
     console.log('Sufficient Gas Price?');
     console.log(myGasPrice.gte(new BN(minGasPrice.result))); // Checks if your gas price is less than the minimum gas price
-    const myGasLimit = Long.fromNumber(20000);
+    const myGasLimit = Long.fromNumber(80000);
 
     // Deploy a contract
     // Instance of class Contract
