@@ -11,8 +11,6 @@ library FungibleToken
 let one = Uint128 1
 let zero = Uint128 0
 
-let decimals = Uint32 12
-
 let min_int =
   fun (a : Uint128) => fun (b : Uint128) =>
   let alt = builtin lt a b in
@@ -51,6 +49,7 @@ let one_msg =
 contract FungibleToken
 (owner : ByStr20,
  total_tokens : Uint128,
+ decimals : Uint32,
  name : String,
  symbol : String)
 
@@ -79,7 +78,7 @@ end
 
 transition TotalSupply ()
   msg = { _tag : "TotalSupplyResponse"; _recipient : _sender; _amount : zero;
-          caller : _sender; balance : total_tokens};
+          caller : _sender; totalSupply : total_tokens};
   msgs = one_msg msg;
   send msgs
 end
@@ -152,24 +151,24 @@ transition TransferFrom (from : ByStr20, to : ByStr20, tokens : Uint128)
             new_allowed = builtin sub b tokens;
             allowed[from][_sender] := new_allowed;
             msg = { _tag : "TransferFromSuccess"; _recipient : _sender; _amount : zero;
-                    sender : from; recipient : to; amount : tokens};
+                    sender : from; recipient : to; amount : tokens };
             msgs = one_msg msg;
             send msgs
         | False =>
             msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
-                    sender : from; recipient : to; amount : zero};
+                    sender : from; recipient : to; amount : zero };
             msgs = one_msg msg;
             send msgs
         end
     | None =>
         msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
-                sender : from; recipient : to; amount : zero};
+                sender : from; recipient : to; amount : zero };
         msgs = one_msg msg;
         send msgs
     end
   | None =>
 	msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
-            sender : from; recipient : to; amount : zero};
+            sender : from; recipient : to; amount : zero };
     msgs = one_msg msg;
     send msgs
   end
@@ -188,12 +187,12 @@ transition Allowance (tokenOwner : ByStr20, spender : ByStr20)
   match spender_allowance with
   | Some n =>
       msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
-              owner : tokenOwner; spender : spender; amount : n};
+              owner : tokenOwner; spender : spender; amount : n };
       msgs = one_msg msg;
       send msgs
   | None =>
       msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
-              owner : tokenOwner; spender : spender; amount : zero};
+              owner : tokenOwner; spender : spender; amount : zero };
       msgs = one_msg msg;
       send msgs
   end
