@@ -1,4 +1,3 @@
-(* Modified from Scilla Test Contracts *)
 scilla_version 0
 
 (* This contract implements a fungible token interface a la ERC20.*)
@@ -34,7 +33,6 @@ let le_int =
       end
     end
 
-(* Modified from SimpleDex *)
 (* returns singleton List Message *)
 let one_msg =
     fun (msg : Message) =>
