@@ -37,9 +37,9 @@ async function test_create_market(zilliqa, VERSION,
       gasLimit: Long.fromNumber(20000),
       data: ([
         {
-          vname: "_scilla_version",
-          type: "Uint32",
-          value: "0"
+          vname: "_tag",
+          type: "String",
+          value: "BalanceOf"
         },
         {
           _vname: "tokenOwner",
@@ -51,7 +51,7 @@ async function test_create_market(zilliqa, VERSION,
     // Send a transaction to the network
     balanceOf_call = await zilliqa.blockchain.createTransaction(balanceOf_tx);
     console.log(balanceOf_call);
-    
+
   } catch (err) {
     console.log(err);
   }
