@@ -35,7 +35,7 @@ async function test_all_v(network, z_addr, t_addr) {
       gasPrice: units.toQa('1000', units.Units.Li),
       gasLimit: Long.fromNumber(1000)
     });
-
+    
     await m_l.test_market_liquidity(zilliqa, VERSION,
         address, z_address, zdex, z_args, t_address, fungible_token, t_args);
     await z_to_t.test_zil_to_token_trades(network, zilliqa, VERSION,
