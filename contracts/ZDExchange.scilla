@@ -13,6 +13,8 @@ let none_uint = None {Uint128}
 let none_bystr = None {ByStr20}
 let none_bnum = None {BNum}
 let none_bool = None {Bool}
+let tt = True
+let ff = False
 
 (* returns Uint128 *)
 let input_price =
@@ -127,7 +129,7 @@ transition CreateMarket (token : ByStr20)
     |   Some bs =>
         msg = { _tag : "CreateMarketFailure"; _recipient : _sender; _amount : zero;
                 token : token;
-                created : False;
+                created : ff;
                 message : "Token already present" };
         msgs = one_msg msg;
         send msgs
@@ -150,7 +152,7 @@ transition CreateMarket (token : ByStr20)
         token_allowances[token] := allowances_new;
         msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero;
                 token : token;
-                created : True };
+                created : tt };
         msgs = one_msg msg;
         send msgs
     end
@@ -843,7 +845,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                     enough_bought = le_int min_zil_bought zil_bought;
                     match enough_bought with
                     |   True =>
-                        is_input = True;
+                        is_input = tt;
                         option_is_input = Some {Bool} is_input;
                         t_t_is_input := option_is_input;
                         option_t_other = Some {ByStr20} token_other;
@@ -1071,7 +1073,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                         order_met = andb enough_bought enough_sold;
                         match order_met with
                         |   True =>
-                            is_input = False;
+                            is_input = ff;
                             option_is_input = Some {Bool} is_input;
                             t_t_is_input := option_is_input;
                             option_t_other = Some {ByStr20} token_other;
@@ -1207,14 +1209,14 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
         	token_balances[token][to] := new_to_bal;
             msg = { _tag : "TransferSuccess"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
-                    transferred : True };
+                    transferred : tt };
             msgs = one_msg msg;
             send msgs
           | False =>
             (* balance not sufficient. *)
             msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
-                    transferred : False;
+                    transferred : ff;
                     message : "Balance not Sufficient" };
             msgs = one_msg msg;
             send msgs
@@ -1223,7 +1225,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
             (* no balance record, can't transfer *)
         	msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
-                    transferred : False;
+                    transferred : ff;
                     message : "Balance not Found" };
             msgs = one_msg msg;
             send msgs
@@ -1231,7 +1233,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
     |   None =>
         msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                 token : token; to : to; tokens : tokens;
-                transferred : False;
+                transferred : ff;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -1271,13 +1273,13 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
                 	  token_balances[token][to] := new_to_bal;
                     msg = { _tag : "TransferFromSuccess"; _recipient : _sender; _amount : zero;
                             token : token; from : from; to : to; tokens : tokens;
-                            transferredFrom : True };
+                            transferredFrom : tt };
                     msgs = one_msg msg;
                     send msgs
                 |   False =>
                     msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                             token : token; from : from; to : to; tokens : tokens;
-                            transferredFrom : False;
+                            transferredFrom : ff;
                             message : "Allowance not Sufficient" };
                     msgs = one_msg msg;
                     send msgs
@@ -1285,7 +1287,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             |   None =>
                 msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                         token : token; from : from; to : to; tokens : tokens;
-                        transferredFrom : False;
+                        transferredFrom : ff;
                         message : "Allowance not Found" };
                 msgs = one_msg msg;
                 send msgs
@@ -1294,7 +1296,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             (* balance not sufficient. *)
             msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
-                    transferredFrom : False;
+                    transferredFrom : ff;
                     message : "Balance not Sufficient" };
             msgs = one_msg msg;
             send msgs
@@ -1303,7 +1305,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             (* no balance record, can't transfer *)
         	msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
-                    transferredFrom : False;
+                    transferredFrom : ff;
                     message : "Balance not Found" };
             msgs = one_msg msg;
             send msgs
@@ -1311,7 +1313,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
     |   None =>
         msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                 token : token; from : from; to : to; tokens : tokens;
-                transferredFrom : False;
+                transferredFrom : ff;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
@@ -1327,13 +1329,13 @@ transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
         token_allowances[token][_sender][spender] := tokens;
         msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
-                approved : True };
+                approved : tt };
         msgs = one_msg msg;
         send msgs
     |   None =>
         msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
-                approved : False;
+                approved : ff;
                 message : "Token not Found" };
         msgs = one_msg msg;
         send msgs
