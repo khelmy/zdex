@@ -225,8 +225,9 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
     (* calls FungibleToken.TransferFrom() *)
     (* sends funds *)
     (* Nonzero liquidity case of AddLiquidity *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         min_liq_zero = builtin eq min_liquidity zero;
         match min_liq_zero with
         |   False =>
@@ -293,6 +294,14 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zil_sold;
+                token : token; min_liquidity : min_liquidity;
+                max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                sender : sender; zil_sold : zil_sold;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -304,8 +313,9 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
     (* calls FungibleToken.TransferFrom() *)
     (* sends funds *)
     (* Zero liquidity case of AddLiquidity *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         enough_sold = le_int ten_e_six zil_sold;
         match enough_sold with
         |   True =>
@@ -325,6 +335,14 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "AddLiquidityZeroFailure"; _recipient : sender; _amount : zil_sold;
+                token : token; min_liquidity : min_liquidity;
+                max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
+                sender : sender; zil_sold : zil_sold;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -434,8 +452,9 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
     (* private *)
     (* Modifies field tx_debt_failure *)
     (* calls FungibleToken.Transfer() *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -493,6 +512,14 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+                token : token;
+                zil_sold : zil_sold; min_tokens : min_tokens;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -536,8 +563,9 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
     (* modifies fields tx_pending_debt, tx_debt_failure *)
     (* calls FungibleToken.Transfer() *)
     (* Refunds provided through TransferSuccess *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -585,6 +613,14 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "ZilToTokenOutputFailure"; _recipient : buyer; _amount : zero;
+                token : token;
+                tokens_bought : tokens_bought; max_zil : max_zil;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -629,8 +665,9 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
     (* private *)
     (* calls FungibleToken.TransferFrom() *)
     (* Payment provided through TransferFromSuccess *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -686,6 +723,14 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TokenToZilInputFailure"; _recipient : buyer; _amount : zero;
+                token : token;
+                tokens_sold : tokens_sold; min_zil : min_zil;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -725,8 +770,9 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
         max_tokens : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20)
     (* private *)
     (* calls FungibleToken.TransferFrom() *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -783,6 +829,14 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TokenToZilOutputFailure"; _recipient : buyer; _amount : zero;
+                token : token;
+                zil_bought : zil_bought; max_tokens : max_tokens;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -826,8 +880,9 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
     (* private *)
     (* Modifies fields t_t_is_input, _t_token, t_t_mt, t_t_deadline, t_t_recipient, tx_pending_debt *)
     (* calls FungibleToken.TransferFrom() *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -901,6 +956,15 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TokenToTokenInputFailure"; _recipient : buyer; _amount : zero;
+                token : token; tokens_sold : tokens_sold;
+                min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                token_other : token_other;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -909,8 +973,9 @@ transition TokenToTokenCtd ()
     (* Modifies fields t_t_is_input, t_t_token, t_t_mt, t_t_deadline, t_t_recipient, tx_pending_debt *)
     (* calls ZilToTokenTransferInput(), ZilToTokenTransferOutput() *)
     (* The part of TokenToToken[In|Out]put after the first call to TransferFrom *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_pending <- t_t_token;
         match token_pending with
         |   Some token =>
@@ -1001,6 +1066,16 @@ transition TokenToTokenCtd ()
                 message : "Token not found"};
             event e
         end
+    |   False =>
+        t_t_is_input := none_bool;
+        t_t_token := none_bystr;
+        t_t_mt := none_uint;
+        t_t_deadline := none_bnum;
+        t_t_recipient := none_bystr;
+        tx_pending_debt := zero;
+        e = {_eventname : "TokenToTokenCtdFailure";
+            message : "Private function called"};
+        event e
     end
 end
 
@@ -1048,8 +1123,9 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
     (* private *)
     (* Modifies fields t_t_is_input, t_t_token, t_t_mt, t_t_deadline, t_t_recipient, tx_pending_debt *)
     (* calls FungibleToken.TransferFrom() *)
-    match _sender with
-    |   _this_address =>
+    is_this_address = builtin eq _sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[token];
         match token_reserve with
         |   Some t_r =>
@@ -1139,6 +1215,15 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TokenToTokenOutputFailure"; _recipient : buyer; _amount : zero;
+                token : token; tokens_bought : tokens_bought;
+                max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
+                deadline : deadline; buyer : buyer; recipient : recipient;
+                token_other : token_other;
+                message : "Private function called"};
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -1564,8 +1649,9 @@ end
 transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
     (* modifies field token_reserves, tx_pending_debt, tx_debt_failure *)
     (* sends funds *)
-    match sender with
-    |   _this_address =>
+    is_this_address = builtin eq sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[_sender];
         match token_reserve with
         |   Some t_r =>
@@ -1585,14 +1671,21 @@ transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+                sender : sender; recipient : recipient; amount : amount;
+                message : "Private function called" };
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
 transition TransferFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
     (* modifies fields tx_pending_debt, tx_debt_failure *)
     (* sends funds *)
-    match sender with
-    |   _this_address =>
+    is_this_address = builtin eq sender _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[_sender];
         match token_reserve with
         |   Some t_r =>
@@ -1610,6 +1703,12 @@ transition TransferFailure (sender : ByStr20, recipient : ByStr20, amount : Uint
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : zero;
+                sender : sender; recipient : recipient; amount : amount;
+                message : "Private function called" };
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
@@ -1617,8 +1716,9 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
     (* modifies field token_reserves, tx_pending_debt *)
     (* Calls TokenToTokenCtd() *)
     (* sends funds *)
-    match recipient with
-    |   _this_address =>
+    is_this_address = builtin eq recipient _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[_sender];
         match token_reserve with
         |   Some t_r =>
@@ -1667,15 +1767,22 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : zero;
+                sender : sender; recipient : recipient; amount : amount;
+                message : "Private function called" };
+        msgs = one_msg msg;
+        send msgs
     end
 end
 
 transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
-(* modifies field token_reserves *)
-(* Calls TokenToTokenCtd() *)
-(* sends funds *)
-match recipient with
-    |   _this_address =>
+    (* modifies field token_reserves *)
+    (* Calls TokenToTokenCtd() *)
+    (* sends funds *)
+    is_this_address = builtin eq recipient _this_address;
+    match is_this_address with
+    |   True =>
         token_reserve <- token_reserves[_sender];
         match token_reserve with
         |   Some t_r =>
@@ -1712,5 +1819,11 @@ match recipient with
             msgs = one_msg msg;
             send msgs
         end
+    |   False =>
+        msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+                sender : sender; recipient : recipient; amount : amount;
+                message : "Private function called" };
+        msgs = one_msg msg;
+        send msgs
     end
 end
