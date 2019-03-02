@@ -16,6 +16,16 @@ let none_bool = None {Bool}
 let tt = True
 let ff = False
 
+let market_already_exists_code = Uint32 1
+let token_not_found_code = Uint32 2
+let order_expired_code = Uint32 3
+let order_not_met_code = Uint32 4
+let parameter_is_zero_code = Uint32 5
+let private_function_called_code = Uint32 6
+let bad_recipient_code = Uint32 7
+let bad_balance_code = Uint32 8
+let bad_allowance_code = Uint32 9
+
 (* returns Uint128 *)
 let input_price =
     fun (input_amount : Uint128) =>
@@ -130,7 +140,7 @@ transition CreateMarket (token : ByStr20)
         msg = { _tag : "CreateMarketFailure"; _recipient : _sender; _amount : zero;
                 token : token;
                 created : ff;
-                message : "Token already present" };
+                code : market_already_exists_code };
         msgs = one_msg msg;
         send msgs
     |   None =>
@@ -180,14 +190,14 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
                     msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
                             token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
                             deadline : deadline; total_liquidity : t_l; sender : _sender;
-                            zil_sold : _amount};
+                            zil_sold : _amount };
                     msgs = one_msg msg;
                     send msgs
                 |   True =>
                     msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
                             token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
                             deadline : deadline; total_liquidity : t_l; sender : _sender;
-                            zil_sold : _amount};
+                            zil_sold : _amount };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -195,7 +205,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
                 msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
                         token : token; min_liquidity : min_liquidity;
                         max_tokens : max_tokens; deadline : deadline;
-                        message : "Token not found"};
+                        code : token_not_found_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -203,7 +213,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
             msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
                     token : token; min_liquidity : min_liquidity;
                     max_tokens : max_tokens; deadline : deadline;
-                    message : "One of max_tokens, _amount is zero"};
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -211,7 +221,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
         msg = { _tag : "AddLiquidityFailure"; _recipient : _sender; _amount : zero;
                 token : token; min_liquidity : min_liquidity;
                 max_tokens : max_tokens; deadline : deadline;
-                message : "Order expired"};
+                code : order_expired_code};
         msgs = one_msg msg;
         send msgs
     end
@@ -272,7 +282,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
                             token : token; min_liquidity : min_liquidity;
                             max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                             sender : sender; zil_sold : zil_sold;
-                            message : "Token not found"};
+                            code : token_not_found_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -281,7 +291,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
                         token : token; min_liquidity : min_liquidity;
                         max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                         sender : sender; zil_sold : zil_sold;
-                        message : "Order not met"};
+                        code : order_not_met_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -290,7 +300,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
                     token : token; min_liquidity : min_liquidity;
                     max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                     sender : sender; zil_sold : zil_sold;
-                    message : "min_liquidity is zero"};
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -299,7 +309,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
                 token : token; min_liquidity : min_liquidity;
                 max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                 sender : sender; zil_sold : zil_sold;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -323,7 +333,7 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
             t_tS_pending := option_zil_sold;
             t_b_pending := option_zil_sold;
             msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                    from : sender; to : _this_address; tokens : max_tokens};
+                    from : sender; to : _this_address; tokens : max_tokens };
             msgs = one_msg msg;
             send msgs
         |   False =>
@@ -331,7 +341,7 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
                     token : token; min_liquidity : min_liquidity;
                     max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                     sender : sender; zil_sold : zil_sold;
-                    message : "Order not met"};
+                    code : order_not_met_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -340,7 +350,7 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
                 token : token; min_liquidity : min_liquidity;
                 max_tokens : max_tokens; deadline : deadline; total_liquidity : total_liquidity;
                 sender : sender; zil_sold : zil_sold;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -393,7 +403,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                                 msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                                         token : token; amount : amount; min_zil : min_zil;
                                         min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                                        message : "Balance not found"};
+                                        code : parameter_is_zero_code };
                                 msgs = one_msg msg;
                                 send msgs
                             end
@@ -401,7 +411,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                             msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                                     token : token; amount : amount; min_zil : min_zil;
                                     min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                                    message : "Order not met"};
+                                    code : order_not_met_code };
                             msgs = one_msg msg;
                             send msgs
                         end
@@ -409,7 +419,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                         msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                                 token : token; amount : amount; min_zil : min_zil;
                                 min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                                message : "Token not found"};
+                                code : token_not_found_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -417,7 +427,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                     msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                             token : token; amount : amount; min_zil : min_zil;
                             min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                            message : "Insufficient liquidity"};
+                            code : parameter_is_zero_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -425,7 +435,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                 msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                         token : token; amount : amount; min_zil : min_zil;
                         min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                        message : "Token not found"};
+                        code : token_not_found_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -433,7 +443,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
             msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                     token : token; amount : amount; min_zil : min_zil;
                     min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                    message : "Order expired"};
+                    code : order_expired_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -441,7 +451,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
         msg = { _tag : "RemoveLiquidityFailure"; _recipient : _sender; _amount : zero;
                 token : token; amount : amount; min_zil : min_zil;
                 min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                message : "One of amount, min_zil, min_tokens is zero"};
+                code : parameter_is_zero_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -481,7 +491,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                                 token : token;
                                 zil_sold : zil_sold; min_tokens : min_tokens;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
-                                message : "Minimum order not met"};
+                                code : order_not_met_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -490,7 +500,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                             token : token;
                             zil_sold : zil_sold; min_tokens : min_tokens;
                             deadline : deadline; buyer : buyer; recipient : recipient;
-                            message : "Order expired"};
+                            code : order_expired_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -499,7 +509,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                         token : token;
                         zil_sold : zil_sold; min_tokens : min_tokens;
                         deadline : deadline; buyer : buyer; recipient : recipient;
-                        message : "One of zil_sold, bal_subbed, token_reserve is zero"};
+                        code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -508,7 +518,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                     token : token;
                     zil_sold : zil_sold; min_tokens : min_tokens;
                     deadline : deadline; buyer : buyer; recipient : recipient;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -517,7 +527,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                 token : token;
                 zil_sold : zil_sold; min_tokens : min_tokens;
                 deadline : deadline; buyer : buyer; recipient : recipient;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -544,7 +554,7 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
     |   True =>
         msg = { _tag : "ZilToTokenTransferInputFailure"; _recipient : _sender; _amount : zero;
                 token : token; min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -591,7 +601,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                             token : token;
                             tokens_bought : tokens_bought; max_zil : max_zil;
                             deadline : deadline; buyer : buyer; recipient : recipient;
-                            message : "Order expired"};
+                            code : order_expired_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -600,7 +610,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                         token : token;
                         tokens_bought : tokens_bought; max_zil : max_zil;
                         deadline : deadline; buyer : buyer; recipient : recipient;
-                        message : "One of tokens_bought, max_zil, token_reserve is zero"};
+                        code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -609,7 +619,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                     token : token;
                     tokens_bought : tokens_bought; max_zil : max_zil;
                     deadline : deadline; buyer : buyer; recipient : recipient;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -618,7 +628,7 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                 token : token;
                 tokens_bought : tokens_bought; max_zil : max_zil;
                 deadline : deadline; buyer : buyer; recipient : recipient;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -646,7 +656,7 @@ transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
     |   True =>
         msg = { _tag : "ZilToTokenTransferOutputFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokens_bought : tokens_bought; deadline : deadline; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -692,7 +702,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
                                 token : token;
                                 tokens_sold : tokens_sold; min_zil : min_zil;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
-                                message : "Minimum order not met"};
+                                code : order_not_met_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -701,7 +711,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
                             token : token;
                             tokens_sold : tokens_sold; min_zil : min_zil;
                             deadline : deadline; buyer : buyer; recipient : recipient;
-                            message : "Order expired"};
+                            code : order_expired_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -710,7 +720,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
                         token : token;
                         tokens_sold : tokens_sold; min_zil : min_zil;
                         deadline : deadline; buyer : buyer; recipient : recipient;
-                        message : "One of tokens_sold, _balance, token_reserve is zero"};
+                        code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -719,7 +729,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
                     token : token;
                     tokens_sold : tokens_sold; min_zil : min_zil;
                     deadline : deadline; buyer : buyer; recipient : recipient;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -728,7 +738,7 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
                 token : token;
                 tokens_sold : tokens_sold; min_zil : min_zil;
                 deadline : deadline; buyer : buyer; recipient : recipient;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -753,7 +763,7 @@ transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
     |   True =>
         msg = { _tag : "TokenToZilTransferInputFailure"; _recipient : _sender; _amount : zero;
                 token : token; min_zil : min_zil; deadline : deadline; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -798,7 +808,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                                 token : token;
                                 zil_bought : zil_bought; max_tokens : max_tokens;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
-                                message : "Maximum order surpassed"};
+                                code : order_not_met_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -807,7 +817,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                             token : token;
                             zil_bought : zil_bought; max_tokens : max_tokens;
                             deadline : deadline; buyer : buyer; recipient : recipient;
-                            message : "Order expired"};
+                            code : order_expired_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -816,7 +826,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                         token : token;
                         zil_bought : zil_bought; max_tokens : max_tokens;
                         deadline : deadline; buyer : buyer; recipient : recipient;
-                        message : "One of zil_bought, token_reserve is zero"};
+                        code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -825,7 +835,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                     token : token;
                     zil_bought : zil_bought; max_tokens : max_tokens;
                     deadline : deadline; buyer : buyer; recipient : recipient;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -834,7 +844,7 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                 token : token;
                 zil_bought : zil_bought; max_tokens : max_tokens;
                 deadline : deadline; buyer : buyer; recipient : recipient;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -860,7 +870,7 @@ transition TokenToZilTransferOutput (token : ByStr20, zil_bought : Uint128,
         msg = { _tag : "TokenToZilTransferOutputFailure"; _recipient : _sender; _amount : zero;
                 token : token; zil_bought : zil_bought; max_tokens : max_tokens;
                 deadline : deadline; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -922,7 +932,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                                 min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
                                 token_other : token_other;
-                                message : "Order not met"};
+                                code : order_not_met_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -932,7 +942,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                             min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                             deadline : deadline; buyer : buyer; recipient : recipient;
                             token_other : token_other;
-                            message : "Order expired"};
+                            code : order_expired_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -942,7 +952,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                         min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                         deadline : deadline; buyer : buyer; recipient : recipient;
                         token_other : token_other;
-                        message : "One of tokens_sold, token_reserve, min_tokens_bought, min_zil_bought is zero"};
+                        code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -952,7 +962,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                     min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                     deadline : deadline; buyer : buyer; recipient : recipient;
                     token_other : token_other;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -962,7 +972,7 @@ transition TokenToTokenInput (token : ByStr20, tokens_sold : Uint128,
                 min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                 deadline : deadline; buyer : buyer; recipient : recipient;
                 token_other : token_other;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1018,7 +1028,7 @@ transition TokenToTokenCtd ()
                             t_t_recipient := none_bystr;
                             tx_pending_debt := zero;
                             e = {_eventname : "TokenToTokenCtdFailure";
-                                message : "is_input not found"};
+                                code : parameter_is_zero_code };
                             event e
                         end
                     (* No good way to send back, so emit events *)
@@ -1030,7 +1040,7 @@ transition TokenToTokenCtd ()
                         t_t_recipient := none_bystr;
                         tx_pending_debt := zero;
                         e = {_eventname : "TokenToTokenCtdFailure";
-                            message : "recipient not found"};
+                            code : parameter_is_zero_code };
                         event e
                     end
                 |   None =>
@@ -1041,7 +1051,7 @@ transition TokenToTokenCtd ()
                     t_t_recipient := none_bystr;
                     tx_pending_debt := zero;
                     e = {_eventname : "TokenToTokenCtdFailure";
-                        message : "deadline not found"};
+                        code : parameter_is_zero_code };
                     event e
                 end
             |   None =>
@@ -1052,7 +1062,7 @@ transition TokenToTokenCtd ()
                 t_t_recipient := none_bystr;
                 tx_pending_debt := zero;
                 e = {_eventname : "TokenToTokenCtdFailure";
-                    message : "mt not found"};
+                    code : parameter_is_zero_code };
                 event e
             end
         |   None =>
@@ -1063,7 +1073,7 @@ transition TokenToTokenCtd ()
             t_t_recipient := none_bystr;
             tx_pending_debt := zero;
             e = {_eventname : "TokenToTokenCtdFailure";
-                message : "Token not found"};
+                code : token_not_found_code };
             event e
         end
     |   False =>
@@ -1074,7 +1084,7 @@ transition TokenToTokenCtd ()
         t_t_recipient := none_bystr;
         tx_pending_debt := zero;
         e = {_eventname : "TokenToTokenCtdFailure";
-            message : "Private function called"};
+            code : private_function_called_code };
         event e
     end
 end
@@ -1103,7 +1113,7 @@ transition TokenToTokenTransferInput(token : ByStr20, tokens_sold : Uint128,
                 token : token; tokens_sold : tokens_sold;
                 min_tokens_bought : min_tokens_bought; min_zil_bought : min_zil_bought;
                 deadline : deadline; token_other : token_other; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -1171,7 +1181,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                                     max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                                     deadline : deadline; buyer : buyer; recipient : recipient;
                                     token_other : token_other;
-                                    message : "Order not met"};
+                                    code : order_not_met_code};
                             msgs = one_msg msg;
                             send msgs
                         end
@@ -1181,7 +1191,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                                 max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                                 deadline : deadline; buyer : buyer; recipient : recipient;
                                 token_other : token_other;
-                                message : "Order expired"};
+                                code : order_expired_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -1191,7 +1201,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                             max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                             deadline : deadline; buyer : buyer; recipient : recipient;
                             token_other : token_other;
-                            message : "One of tokens_bought, token_reserve, max_tokens_sold, max_zil_sold is zero"};
+                            code : parameter_is_zero_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -1201,7 +1211,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                         max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                         deadline : deadline; buyer : buyer; recipient : recipient;
                         token_other : token_other;
-                        message : "token_other not found"};
+                        code : token_not_found_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -1211,7 +1221,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                     max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                     deadline : deadline; buyer : buyer; recipient : recipient;
                     token_other : token_other;
-                    message : "Token not found"};
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -1221,7 +1231,7 @@ transition TokenToTokenOutput (token : ByStr20, tokens_bought : Uint128,
                 max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                 deadline : deadline; buyer : buyer; recipient : recipient;
                 token_other : token_other;
-                message : "Private function called"};
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1251,7 +1261,7 @@ transition TokenToTokenTransferOutput (token : ByStr20, tokens_bought : Uint128,
                 token : token; tokens_bought : tokens_bought;
                 max_tokens_sold : max_tokens_sold; max_zil_sold : max_zil_sold;
                 deadline : deadline; token_other : token_other; recipient : recipient;
-                message : "ZDExchange cannot be recipient" };
+                code : bad_recipient_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -1302,7 +1312,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
             msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : ff;
-                    message : "Balance not Sufficient" };
+                    code : bad_balance_code };
             msgs = one_msg msg;
             send msgs
           end
@@ -1311,7 +1321,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
         	msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                     token : token; to : to; tokens : tokens;
                     transferred : ff;
-                    message : "Balance not Found" };
+                    code : bad_balance_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -1319,7 +1329,7 @@ transition Transfer (token : ByStr20, to: ByStr20, tokens : Uint128)
         msg = { _tag : "TransferFailure"; _recipient : _sender; _amount : zero;
                 token : token; to : to; tokens : tokens;
                 transferred : ff;
-                message : "Token not Found" };
+                code : bad_balance_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1365,7 +1375,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
                     msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                             token : token; from : from; to : to; tokens : tokens;
                             transferredFrom : ff;
-                            message : "Allowance not Sufficient" };
+                            code : bad_allowance_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -1373,7 +1383,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
                 msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                         token : token; from : from; to : to; tokens : tokens;
                         transferredFrom : ff;
-                        message : "Allowance not Found" };
+                        code : bad_allowance_code };
                 msgs = one_msg msg;
                 send msgs
             end
@@ -1382,7 +1392,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
             msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
                     transferredFrom : ff;
-                    message : "Balance not Sufficient" };
+                    code : bad_balance_code };
             msgs = one_msg msg;
             send msgs
           end
@@ -1391,7 +1401,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
         	msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                     token : token; from : from; to : to; tokens : tokens;
                     transferredFrom : ff;
-                    message : "Balance not Found" };
+                    code : bad_balance_code };
             msgs = one_msg msg;
             send msgs
         end
@@ -1399,7 +1409,7 @@ transition TransferFrom (token : ByStr20, from : ByStr20, to: ByStr20,
         msg = { _tag : "TransferFromFailure"; _recipient : _sender; _amount : zero;
                 token : token; from : from; to : to; tokens : tokens;
                 transferredFrom : ff;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1412,16 +1422,16 @@ transition Approve (token : ByStr20, spender : ByStr20, tokens : Uint128)
     match allowances with
     |   Some as =>
         token_allowances[token][_sender][spender] := tokens;
-        msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ApproveSuccess"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
                 approved : tt };
         msgs = one_msg msg;
         send msgs
     |   None =>
-        msg = { _tag : "ApproveResponse"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "ApproveFailure"; _recipient : _sender; _amount : zero;
                 token : token; spender : spender; tokens : tokens;
                 approved : ff;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1437,7 +1447,7 @@ transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
         msg = { _tag : "ZilToTokenInputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; zil_sold : zil_sold;
                 price : zero;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     |   Some t_r =>
@@ -1448,7 +1458,7 @@ transition ZilToTokenInputPrice (token : ByStr20, zil_sold : Uint128)
             msg = { _tag : "ZilToTokenInputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; zil_sold : zil_sold;
                     price : zero;
-                    message : "One of _balance, token balance, zil_sold is zero" };
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         |   False =>
@@ -1472,7 +1482,7 @@ transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
         msg = { _tag : "ZilToTokenOutputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokens_bought : tokens_bought;
                 price : zero;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     |   Some t_r =>
@@ -1483,7 +1493,7 @@ transition ZilToTokenOutputPrice (token : ByStr20, tokens_bought : Uint128)
             msg = { _tag : "ZilToTokenOutputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; tokens_bought : tokens_bought;
                     price : zero;
-                    message : "One of _balance, token balance, tokens_bought is zero" };
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         |   False =>
@@ -1507,7 +1517,7 @@ transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
         msg = { _tag : "TokenToZilInputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokens_sold : tokens_sold;
                 price : zero;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     |   Some t_r =>
@@ -1518,7 +1528,7 @@ transition TokenToZilInputPrice (token : ByStr20, tokens_sold : Uint128)
             msg = { _tag : "TokenToZilInputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; tokens_sold : tokens_sold;
                     price : zero;
-                    message : "One of _balance, token balance, tokens_sold is zero" };
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         |   False =>
@@ -1542,7 +1552,7 @@ transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
         msg = { _tag : "TokenToZilOutputPriceFailure"; _recipient : _sender; _amount : zero;
                 token : token; zil_bought : zil_bought;
                 price : zero;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     |   Some t_r =>
@@ -1553,7 +1563,7 @@ transition TokenToZilOutputPrice (token : ByStr20, zil_bought : Uint128)
             msg = { _tag : "TokenToZilOutputPriceFailure"; _recipient : _sender; _amount : zero;
                     token : token; zil_bought : zil_bought;
                     price : zero;
-                    message : "One of _balance, token balance, zil_bought is zero" };
+                    code : parameter_is_zero_code };
             msgs = one_msg msg;
             send msgs
         |   False =>
@@ -1590,23 +1600,23 @@ transition BalanceOf (token : ByStr20, tokenOwner : ByStr20)
         balance <- token_balances[token][tokenOwner];
         match balance with
         |   Some b =>
-            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : b };
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : zero };
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-            msg = { _tag : "BalanceOfResponse"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "BalanceOfFailure"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner;
                     balance : zero;
-                    message : "Token not Found" };
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
     end
@@ -1622,23 +1632,23 @@ transition Allowance (token : ByStr20, tokenOwner : ByStr20, spender : ByStr20)
         allowance <- token_allowances[token][tokenOwner][spender];
         match allowance with
         |   Some a =>
-            msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "AllowanceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner; spender : spender;
                     allowance : a};
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
+            msg = { _tag : "AllowanceSuccess"; _recipient : _sender; _amount : zero;
                     token : token; tokenOwner : tokenOwner; spender : spender;
                     allowance : zero};
             msgs = one_msg msg;
             send msgs
         end
     |   None =>
-        msg = { _tag : "AllowanceResponse"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "AllowanceFailure"; _recipient : _sender; _amount : zero;
                 token : token; tokenOwner : tokenOwner; spender : spender;
                 allowance : zero;
-                message : "Token not Found" };
+                code : token_not_found_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1660,21 +1670,21 @@ transition TransferSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint
             debt <- tx_pending_debt;
             tx_pending_debt := zero;
             tx_debt_failure := zero;
-            msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : debt;
+            msg = { _tag : "TransferSuccessSuccess"; _recipient : recipient; _amount : debt;
                     sender : sender; recipient : recipient; amount : amount };
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+            msg = { _tag : "TransferSuccessFailure"; _recipient : recipient; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
-                    message : "Token not Found" };
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "TransferSuccessResponse"; _recipient : recipient; _amount : zero;
+        msg = { _tag : "TransferSuccessFailure"; _recipient : recipient; _amount : zero;
                 sender : sender; recipient : recipient; amount : amount;
-                message : "Private function called" };
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1692,21 +1702,21 @@ transition TransferFailure (sender : ByStr20, recipient : ByStr20, amount : Uint
             debt <- tx_debt_failure;
             tx_pending_debt := zero;
             tx_debt_failure := zero;
-            msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : debt;
+            msg = { _tag : "TransferFailureSuccess"; _recipient : recipient; _amount : debt;
                     sender : sender; recipient : recipient; amount : amount };
             msgs = one_msg msg;
             send msgs
         |   None =>
-            msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : zero;
+            msg = { _tag : "TransferFailureFailure"; _recipient : recipient; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
-                    message : "Token not Found" };
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "TransferFailureResponse"; _recipient : recipient; _amount : zero;
+        msg = { _tag : "TransferFailureFailure"; _recipient : recipient; _amount : zero;
                 sender : sender; recipient : recipient; amount : amount;
-                message : "Private function called" };
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1739,18 +1749,18 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
                     match tS_new with
                     |   Some tS =>
                         token_totalSupplies[sender] := tS;
-                        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                        msg = { _tag : "TransferFromSuccessSuccess"; _recipient : sender; _amount : debt;
                                 sender : sender; recipient : recipient; amount : amount };
                         msgs = one_msg msg;
                         send msgs
                     |   None =>
-                        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                        msg = { _tag : "TransferFromSuccessSuccess"; _recipient : sender; _amount : debt;
                                 sender : sender; recipient : recipient; amount : amount };
                         msgs = one_msg msg;
                         send msgs
                     end
                 |   None =>
-                    msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : debt;
+                    msg = { _tag : "TransferFromSuccessSuccess"; _recipient : sender; _amount : debt;
                             sender : sender; recipient : recipient; amount : amount };
                     msgs = one_msg msg;
                     send msgs
@@ -1761,16 +1771,16 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
                 send msgs
             end
         |   None =>
-            msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : zero;
+            msg = { _tag : "TransferFromSuccessFailure"; _recipient : sender; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
-                    message : "Token not Found" };
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "TransferFromSuccessResponse"; _recipient : sender; _amount : zero;
+        msg = { _tag : "TransferFromSuccessFailure"; _recipient : sender; _amount : zero;
                 sender : sender; recipient : recipient; amount : amount;
-                message : "Private function called" };
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
@@ -1796,7 +1806,7 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
                 tx_debt_failure := zero;
                 t_tS_pending := none_uint;
                 t_b_pending := none_uint;
-                msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : debt;
+                msg = { _tag : "TransferFromFailureSuccess"; _recipient : sender; _amount : debt;
                         sender : sender; recipient : recipient; amount : amount };
                 msgs = one_msg msg;
                 send msgs
@@ -1807,22 +1817,22 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
                 t_t_deadline := none_bnum;
                 t_t_recipient := none_bystr;
                 tx_pending_debt := zero;
-                msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+                msg = { _tag : "TransferFromFailureSuccess"; _recipient : sender; _amount : zero;
                         sender : sender; recipient : recipient; amount : amount };
                 msgs = one_msg msg;
                 send msgs
             end
         |   None =>
-            msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+            msg = { _tag : "TransferFromFailureFailure"; _recipient : sender; _amount : zero;
                     sender : sender; recipient : recipient; amount : amount;
-                    message : "Token not Found" };
+                    code : token_not_found_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "TransferFromFailureResponse"; _recipient : sender; _amount : zero;
+        msg = { _tag : "TransferFromFailureFailure"; _recipient : sender; _amount : zero;
                 sender : sender; recipient : recipient; amount : amount;
-                message : "Private function called" };
+                code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end

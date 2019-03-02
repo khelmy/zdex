@@ -7,9 +7,9 @@ Inspired by UniSwap: https://uniswap.io/
 
 ## Current Status
 
-The most recent version of the ZDEX contract can be found on the Zilliqa testnet at the address `82a5f2b2e47d53f2e55a26b2a485cbdcc8f2ab27`. It was deployed in transaction `2fa890f0407b2d9f168bb69b4676ab3b73cc651bb70742dbd5dce8d56b799626`.
+The most recent version of the ZDEX contract can be found on the Zilliqa testnet at the address `24558195756c0bcdff5d52834d72f0ee48199669`. It was deployed in transaction `98e3e5fb364d6fd667c9fa0aaacc3b2cc72306fd6bddce8e0bf4e78e2c5743b3`.
 
-The most recent version of the ZDEX-compatible FungibleToken contract can be found at the address `46e9029ee54e6402a9807e64684636be5ddefe16`.
+The most recent version of the ZDEX-compatible FungibleToken contract can be found on the Zilliqa Testnet at the address `46e9029ee54e6402a9807e64684636be5ddefe16`.
 
 ## Run with Scilla Compiler (Docker)
 
