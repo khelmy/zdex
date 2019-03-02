@@ -18,17 +18,14 @@ async function test_create_market(zilliqa, VERSION,
     var c_m_call = await zdex.call("CreateMarket", z_args, c_m_msg);
     console.log(c_m_call);
     */
-    /*
-    var balanceof_message = ([
-      {
-        vname: "tokenOwner",
-        type: "ByStr20",
-        value: `0x${z_address}`
-      }
-    ]);
+    var balanceof_message = ({
+      vname: "tokenOwner",
+      type: "ByStr20",
+      value: `0x${address}`
+    });
     var balanceof_call = await fungible_token.call("BalanceOf", t_args, balanceof_message);
     console.log(balanceof_call);
-    */
+    /*
     var balanceOf_tx = zilliqa.transactions.new({
       version: VERSION,
       toAddr: `0x${t_address}`,
@@ -51,7 +48,7 @@ async function test_create_market(zilliqa, VERSION,
     // Send a transaction to the network
     balanceOf_call = await zilliqa.blockchain.createTransaction(balanceOf_tx);
     console.log(balanceOf_call);
-
+    */
   } catch (err) {
     console.log(err);
   }
