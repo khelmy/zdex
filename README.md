@@ -7,7 +7,7 @@ Inspired by UniSwap: https://uniswap.io/
 
 ## Current Status
 
-The most recent version of the ZDEX contract can be found on the Zilliqa testnet at the address `39e4b7ffb63446ffd8eb5cfad7ec00b9bcc12f64`.
+The most recent version of the ZDEX contract can be found on the Zilliqa testnet at the address `82a5f2b2e47d53f2e55a26b2a485cbdcc8f2ab27`. It was deployed in transaction `2fa890f0407b2d9f168bb69b4676ab3b73cc651bb70742dbd5dce8d56b799626`.
 
 The most recent version of the ZDEX-compatible FungibleToken contract can be found at the address `46e9029ee54e6402a9807e64684636be5ddefe16`.
 
