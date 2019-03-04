@@ -24,12 +24,12 @@ docker build -t scilla .
 
 From then on, from the ZDEX root folder, to typecheck the ZDExchange contract, run:
 ```
-. typecheck.bash
+. typecheck.bash contracts/ZDExchange.scilla
 ```
 
 To typecheck the FungibleToken contract, run:
 ```
-. typecheck_token.bash
+. typecheck.bash contracts/FungibleToken.scilla
 ```
 
 ## Deploying

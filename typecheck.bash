@@ -10,7 +10,7 @@ docker container rm scilla-cont
 
 # Typecheck
 docker run -t -d --name scilla-cont scilla bash
-docker exec scilla-cont ./bin/scilla-checker -libdir src/stdlib /zdex/contracts/ZDExchange.scilla
+docker exec scilla-cont ./bin/scilla-checker -libdir src/stdlib "/zdex/$1"
 # Clean after typecheck
 docker stop scilla-cont
 docker container rm scilla-cont
