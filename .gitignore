@@ -1,3 +1,4 @@
 tests/privkey_testnet.txt
 data/*
 zdex-app/*
+contracts_experimental/ZDExchange_remaining.scilla
