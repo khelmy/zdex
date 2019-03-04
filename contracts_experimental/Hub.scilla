@@ -37,9 +37,6 @@ contract Hub
 
 field token_count : Uint128 = zero
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
-(* field token_names : Map ByStr20 String = Emp ByStr20 String *)
-(* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
-(* field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32 *)
 field token_reserves : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
@@ -105,12 +102,4 @@ transition CreateMarket (token : ByStr20)
         msgs = one_msg msg;
         send msgs
     end
-end
-
-transition GetFields()
-
-end
-
-transition UpdateFields()
-
 end
