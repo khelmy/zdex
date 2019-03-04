@@ -103,7 +103,7 @@ let le_int =
 contract ZDExchange
 ()
 
-field tokenCount : Uint128 = zero
+field token_count : Uint128 = zero
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 (* field token_names : Map ByStr20 String = Emp ByStr20 String *)
 (* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
@@ -122,7 +122,7 @@ field tx_pending_debt : Uint128 = zero
 field tx_debt_failure : Uint128 = zero
 
 transition CreateMarket (token : ByStr20)
-    (* Modifies fields tokenCount, id_to_token token_totalSupplies, token_reserves *)
+    (* Modifies fields token_count, id_to_token token_totalSupplies, token_reserves *)
     (* token_balances, token_allowances *)
     (* if returned, modifies token_names, token_symbols, token_decimals *)
     (* returns Bool in created *)
@@ -136,10 +136,10 @@ transition CreateMarket (token : ByStr20)
         msgs = one_msg msg;
         send msgs
     |   None =>
-        (* Update tokenCount *)
-        tC <- tokenCount;
+        (* Update token_count *)
+        tC <- token_count;
         tC_new = builtin add tC one;
-        tokenCount := tC_new;
+        token_count := tC_new;
         (* Update id_to_token *)
         id_to_token[tC_new] := token;
         (* Update token_reserves *)

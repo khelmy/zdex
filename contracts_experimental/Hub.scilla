@@ -1,0 +1,118 @@
+scilla_version 0
+
+import BoolUtils
+
+library Hub
+
+let one = Uint128 1
+let zero = Uint128 0
+let zero_address = 0x0000000000000000000000000000000000000000
+let tt = True
+let ff = False
+
+let already_initialized_code = Uint32 1
+let market_already_exists_code = Uint32 2
+
+(* Modified from SimpleDex *)
+(* returns singleton List Message *)
+let one_msg =
+    fun (msg : Message) =>
+        let nil_msg = Nil {Message} in
+        Cons {Message} msg nil_msg
+
+(* Is a_arg an approved address? *)
+let approved_address =
+    fun (a_arg : ByStr20) =>
+    fun (a_1 : ByStr20) =>
+    fun (a_2 : ByStr20) =>
+    fun (a_3 : ByStr20) =>
+        let eq_a_1 = builtin eq a_arg a_1 in
+        let eq_a_2 = builtin eq a_arg a_2 in
+        let eq_a_3 = builtin eq a_arg a_3 in
+        let in_a_1_2 = orb eq_a_1 eq_a_2 in
+        orb in_a_1_2 eq_a_3
+
+contract Hub
+()
+
+field token_count : Uint128 = zero
+field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
+(* field token_names : Map ByStr20 String = Emp ByStr20 String *)
+(* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
+(* field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32 *)
+field token_reserves : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
+field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
+
+(* This hub's auxiliary contracts *)
+field initialized : Bool = ff
+field liquidity_manager : ByStr20 = zero_address
+field zil_to_token : ByStr20 = zero_address
+field token_to_zil : ByStr20 = zero_address
+
+transition Initialize(l_m_address : ByStr20, z_t_address : ByStr20, t_z_address : ByStr20)
+    init <- initialized;
+    match init with
+    |   False =>
+        initialized := tt;
+        liquidity_manager := l_m_address;
+        zil_to_token := z_t_address;
+        token_to_zil := t_z_address;
+        msg = { _tag : "InitializeSuccess"; _recipient : _sender; _amount : zero;
+                l_m_address : l_m_address; z_t_address : z_t_address; t_z_address : t_z_address };
+        msgs = one_msg msg;
+        send msgs
+    |   True =>
+        msg = { _tag : "InitializeFailure"; _recipient : _sender; _amount : zero;
+                l_m_address : l_m_address; z_t_address : z_t_address; t_z_address : t_z_address;
+                code : already_initialized_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+(* Creates a token market *)
+transition CreateMarket (token : ByStr20)
+    (* Modifies fields token_count, id_to_token token_totalSupplies, token_reserves *)
+    (* token_balances, token_allowances *)
+    (* returns Bool in created *)
+    balances <- token_balances[token];
+    match balances with
+    |   Some bs =>
+        msg = { _tag : "CreateMarketFailure"; _recipient : _sender; _amount : zero;
+                token : token;
+                code : market_already_exists_code };
+        msgs = one_msg msg;
+        send msgs
+    |   None =>
+        (* Update token_count *)
+        tC <- token_count;
+        tC_new = builtin add tC one;
+        token_count := tC_new;
+        (* Update id_to_token *)
+        id_to_token[tC_new] := token;
+        (* Update token_reserves *)
+        token_reserves[token] := zero;
+        (* Update token_totalSupplies *)
+        token_totalSupplies[token] := zero;
+        (* Update token_balances *)
+        balances_new = Emp ByStr20 Uint128;
+        token_balances[token] := balances_new;
+        (* Update token_allowances *)
+        allowances_new = Emp ByStr20 (Map ByStr20 Uint128);
+        token_allowances[token] := allowances_new;
+        msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero;
+                token : token };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+transition GetFields()
+
+end
+
+transition UpdateFields()
+
+end

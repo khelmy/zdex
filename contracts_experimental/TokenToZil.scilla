@@ -1,0 +1,6 @@
+scilla_version 0
+
+library TokenToZil
+
+contract TokenToZil
+(hub_address : ByStr20)

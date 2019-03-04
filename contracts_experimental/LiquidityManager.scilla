@@ -1,0 +1,6 @@
+scilla_version 0
+
+library LiquidityManager
+
+contract LiquidityManager
+(hub_address : ByStr20)
