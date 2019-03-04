@@ -110,7 +110,7 @@ field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 (* field token_symbols : Map ByStr20 String = Emp ByStr20 String *)
 (* field token_decimals : Map ByStr20 Uint32 = Emp ByStr20 Uint32 *)
 field token_reserves : Map ByStr20 Uint128 = Emp ByStr20 Uint128
-field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_total_supplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
@@ -123,7 +123,7 @@ field tx_pending_debt : Uint128 = zero
 field tx_debt_failure : Uint128 = zero
 
 transition CreateMarket (token : ByStr20)
-    (* Modifies fields token_count, id_to_token token_totalSupplies, token_reserves *)
+    (* Modifies fields token_count, id_to_token token_total_supplies, token_reserves *)
     (* token_balances, token_allowances *)
     (* if returned, modifies token_names, token_symbols, token_decimals *)
     (* returns Bool in created *)
@@ -145,8 +145,8 @@ transition CreateMarket (token : ByStr20)
         id_to_token[tC_new] := token;
         (* Update token_reserves *)
         token_reserves[token] := zero;
-        (* Update token_totalSupplies *)
-        token_totalSupplies[token] := zero;
+        (* Update token_total_supplies *)
+        token_total_supplies[token] := zero;
         (* Update token_balances *)
         balances_new = Emp ByStr20 Uint128;
         token_balances[token] := balances_new;
@@ -173,7 +173,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
         any_param_zero = any_zero_double max_tokens _amount;
         match any_param_zero with
         |   False =>
-            total_liquidity <- token_totalSupplies[token];
+            total_liquidity <- token_total_supplies[token];
             match total_liquidity with
             |   Some t_l =>
                 accept;
@@ -187,7 +187,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
                     msgs = one_msg msg;
                     send msgs
                 |   True =>
-                    msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
+                    msg = { _tag : "AddLiquidityZero"; _recipient : _this_address; _amount : zero;
                             token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
                             deadline : deadline; total_liquidity : t_l; sender : _sender;
                             zil_sold : _amount };
@@ -224,7 +224,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
         max_tokens : Uint128, deadline : BNum, total_liquidity : Uint128,
         sender : ByStr20, zil_sold : Uint128)
     (* private *)
-    (* Modifies fields token_totalSupplies, token_balances *)
+    (* Modifies fields token_total_supplies, token_balances *)
     (* calls FungibleToken.TransferFrom() *)
     (* sends funds *)
     (* Nonzero liquidity case of AddLiquidity *)
@@ -312,7 +312,7 @@ transition AddLiquidityZero (token : ByStr20, min_liquidity : Uint128,
         max_tokens : Uint128, deadline : BNum, total_liquidity : Uint128,
         sender : ByStr20, zil_sold : Uint128)
     (* private *)
-    (* Modifies fields token_totalSupplies, token_balances *)
+    (* Modifies fields token_total_supplies, token_balances *)
     (* calls FungibleToken.TransferFrom() *)
     (* sends funds *)
     (* Zero liquidity case of AddLiquidity *)
@@ -351,7 +351,7 @@ end
 
 transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128,
         min_tokens : Uint128, deadline : BNum, recipient : ByStr20)
-    (* Modifies fields token_totalSupplies, token_balances, tx_pending_debt *)
+    (* Modifies fields token_total_supplies, token_balances, tx_pending_debt *)
     (* returns Uint128 *)
     (* calls FungibleToken.Transfer() *)
     any_param_zero = any_zero_triple amount min_zil min_tokens;
@@ -361,7 +361,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
         block_valid = ble blocknumber deadline;
         match block_valid with
         |   True =>
-            total_liquidity <- token_totalSupplies[token];
+            total_liquidity <- token_total_supplies[token];
             match total_liquidity with
             |   Some t_l =>
                 t_l_zero = builtin eq t_l zero;
@@ -386,7 +386,7 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
                                 t_b_new = builtin sub t_b amount;
                                 token_balances[token][_sender] := t_b_new;
                                 t_l_new = builtin sub t_l amount;
-                                token_totalSupplies[token] := t_l_new;
+                                token_total_supplies[token] := t_l_new;
                                 tx_pending_debt := zil_amount;
                                 msg = { _tag : "Transfer"; _recipient : token; _amount : zero;
                                         to : recipient; tokens : token_amount};
@@ -1346,7 +1346,7 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
                 token_balances[sender][recipient] := s_b;
                 match tS_new with
                 |   Some tS =>
-                    token_totalSupplies[sender] := tS;
+                    token_total_supplies[sender] := tS;
                     msg = { _tag : "TransferFromSuccessSuccess"; _recipient : sender; _amount : debt;
                             sender : sender; recipient : recipient; amount : amount };
                     msgs = one_msg msg;

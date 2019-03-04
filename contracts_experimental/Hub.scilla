@@ -81,7 +81,6 @@ transition CreateMarket (token : ByStr20)
     match balances with
     |   Some bs =>
         msg = { _tag : "CreateMarketFailure"; _recipient : _sender; _amount : zero;
-                token : token;
                 code : market_already_exists_code };
         msgs = one_msg msg;
         send msgs
@@ -102,8 +101,7 @@ transition CreateMarket (token : ByStr20)
         (* Update token_allowances *)
         allowances_new = Emp ByStr20 (Map ByStr20 Uint128);
         token_allowances[token] := allowances_new;
-        msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero;
-                token : token };
+        msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero };
         msgs = one_msg msg;
         send msgs
     end

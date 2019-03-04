@@ -194,7 +194,7 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
                     msgs = one_msg msg;
                     send msgs
                 |   True =>
-                    msg = { _tag : "AddLiquidityNonzero"; _recipient : _this_address; _amount : zero;
+                    msg = { _tag : "AddLiquidityZero"; _recipient : _this_address; _amount : zero;
                             token : token; min_liquidity : min_liquidity; max_tokens : max_tokens;
                             deadline : deadline; total_liquidity : t_l; sender : _sender;
                             zil_sold : _amount };
