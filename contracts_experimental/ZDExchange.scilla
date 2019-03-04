@@ -16,15 +16,16 @@ let none_bool = None {Bool}
 let tt = True
 let ff = False
 
-let market_already_exists_code = Uint32 1
-let token_not_found_code = Uint32 2
-let order_expired_code = Uint32 3
-let order_not_met_code = Uint32 4
-let parameter_is_zero_code = Uint32 5
-let private_function_called_code = Uint32 6
-let bad_recipient_code = Uint32 7
-let bad_balance_code = Uint32 8
-let bad_allowance_code = Uint32 9
+let already_initialized_code = Uint32 1
+let market_already_exists_code = Uint32 2
+let token_not_found_code = Uint32 3
+let order_expired_code = Uint32 4
+let order_not_met_code = Uint32 5
+let parameter_is_zero_code = Uint32 6
+let private_function_called_code = Uint32 7
+let bad_recipient_code = Uint32 8
+let bad_balance_code = Uint32 9
+let bad_allowance_code = Uint32 10
 
 (* returns Uint128 *)
 let input_price =

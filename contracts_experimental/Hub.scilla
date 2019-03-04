@@ -87,11 +87,11 @@ transition CreateMarket (token : ByStr20)
         send msgs
     |   None =>
         (* Update token_count *)
-        tC <- token_count;
-        tC_new = builtin add tC one;
-        token_count := tC_new;
+        t_c <- token_count;
+        t_c_new = builtin add t_c one;
+        token_count := t_c_new;
         (* Update id_to_token *)
-        id_to_token[tC_new] := token;
+        id_to_token[t_c_new] := token;
         (* Update token_reserves *)
         token_reserves[token] := zero;
         (* Update token_totalSupplies *)
