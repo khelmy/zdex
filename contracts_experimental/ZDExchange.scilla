@@ -276,7 +276,7 @@ transition AddLiquidityNonzero (token : ByStr20, min_liquidity : Uint128,
             send msgs
         end
     |   False =>
-        msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zil_sold;
+        msg = { _tag : "AddLiquidityNonzeroFailure"; _recipient : sender; _amount : zero;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -459,7 +459,7 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
             send msgs
         end
     |   False =>
-        msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zil_sold;
+        msg = { _tag : "ZilToTokenInputFailure"; _recipient : buyer; _amount : zero;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
