@@ -12,6 +12,9 @@ let ff = False
 
 let already_initialized_code = Uint32 1
 let market_already_exists_code = Uint32 2
+let token_not_found_code = Uint32 3
+let private_function_called_code = Uint32 7
+let bad_allowance_code = Uint32 10
 
 (* Modified from SimpleDex *)
 (* returns singleton List Message *)
@@ -38,16 +41,19 @@ contract Hub
 field token_count : Uint128 = zero
 field id_to_token : Map Uint128 ByStr20 = Emp Uint128 ByStr20
 field token_reserves : Map ByStr20 Uint128 = Emp ByStr20 Uint128
-field token_totalSupplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
+field token_total_supplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
+(* Keep track of tokens, aux contracts, and approvals *)
+field token_contract_allowances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* This hub's auxiliary contracts *)
 field initialized : Bool = ff
 field liquidity_manager : ByStr20 = zero_address
 field zil_to_token : ByStr20 = zero_address
 field token_to_zil : ByStr20 = zero_address
 
+(* Initializes contract's auxiliary contracts *)
 transition Initialize(l_m_address : ByStr20, z_t_address : ByStr20, t_z_address : ByStr20)
     init <- initialized;
     match init with
@@ -69,9 +75,58 @@ transition Initialize(l_m_address : ByStr20, z_t_address : ByStr20, t_z_address 
     end
 end
 
+(* Approve an auxiliary address for this token *)
+(* Must be an approved aux address *)
+(* Required before performing certain actions *)
+transition ApproveAux (token : ByStr20, aux : ByStr20, limit : Uint128)
+    l_m <- liquidity_manager;
+    z_t <- zil_to_token;
+    t_z <- token_to_zil;
+    aux_approved = approved_address aux l_m z_t t_z;
+    match aux_approved with
+    |   True =>
+        total_supply <- token_total_supplies[token];
+        match total_supply with
+        |   Some t_s =>
+            allowed <- token_contract_allowances[token][aux];
+            match allowed with
+            |   None =>
+                msg = { _tag : "Approve"; _recipient : token; _amount : zero;
+                        spender : aux; tokens : limit };
+                msgs = one_msg msg;
+                send msgs
+            |   Some a =>
+                is_raise = builtin lt a limit;
+                match is_raise with
+                |   True =>
+                    msg = { _tag : "Approve"; _recipient : token; _amount : zero;
+                            spender : aux; tokens : limit };
+                    msgs = one_msg msg;
+                    send msgs
+                |   False =>
+                    msg = { _tag : "ApproveAuxFailure"; _recipient : _sender; _amount : zero;
+                            code : bad_allowance_code };
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            end
+        |   None =>
+            msg = { _tag : "ApproveAuxFailure"; _recipient : _sender; _amount : zero;
+                    code : token_not_found_code };
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   False =>
+        msg = { _tag : "ApproveAuxFailure"; _recipient : _sender; _amount : zero;
+                code : bad_allowance_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
 (* Creates a token market *)
 transition CreateMarket (token : ByStr20)
-    (* Modifies fields token_count, id_to_token token_totalSupplies, token_reserves *)
+    (* Modifies fields token_count, id_to_token token_total_supplies, token_reserves *)
     (* token_balances, token_allowances *)
     (* returns Bool in created *)
     balances <- token_balances[token];
@@ -90,8 +145,8 @@ transition CreateMarket (token : ByStr20)
         id_to_token[t_c_new] := token;
         (* Update token_reserves *)
         token_reserves[token] := zero;
-        (* Update token_totalSupplies *)
-        token_totalSupplies[token] := zero;
+        (* Update token_total_supplies *)
+        token_total_supplies[token] := zero;
         (* Update token_balances *)
         balances_new = Emp ByStr20 Uint128;
         token_balances[token] := balances_new;
@@ -102,4 +157,113 @@ transition CreateMarket (token : ByStr20)
         msgs = one_msg msg;
         send msgs
     end
+end
+
+(** External Contract Calls **)
+
+(** LiquidityManager Calls **)
+(* Interface for AddLiquidityCore *)
+transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
+        max_tokens : Uint128, deadline : BNum)
+    (* payable *)
+    accept;
+    l_m <- liquidity_manager;
+    total_supply <- token_total_supplies[token];
+    reserve <- token_reserves[token];
+    balance <- _balance;
+    sender_balance <- token_balances[token][_sender];
+    msg = { _tag : "AddLiquidityCore"; _recipient : l_m; _amount : zero;
+            token : token; min_liquidity : min_liquidity; max_tokens : max_tokens; deadline : deadline;
+            total_supply : total_supply; sender_balance : sender_balance; reserve : reserve; balance : balance;
+            zil_sold : _amount; sender : _sender };
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* Interface for RemoveLiquidityCore *)
+transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128,
+        min_tokens : Uint128, deadline : BNum, recipient : ByStr20)
+    (* token_total_supplies[token], token_reserves[token], _balance, token_balances[token][_sender],  *)
+    l_m <- liquidity_manager;
+    total_supply <- token_total_supplies[token];
+    reserve <- token_reserves[token];
+    balance <- _balance;
+    sender_balance <- token_balances[token][_sender];
+    msg = { _tag : "RemoveLiquidityCore"; _recipient : l_m; _amount : zero;
+            token : token; amount : amount; min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+            total_supply : total_supply; sender_balance : sender_balance; reserve : reserve; balance : balance;
+            sender : _sender };
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* Response function for successful LiquidityManager action *)
+transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : ByStr20,
+        total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128)
+    l_m <- liquidity_manager;
+    l_m_sent = builtin eq l_m _sender;
+    match l_m_sent with
+    |   True =>
+        token_total_supplies[token] := total_supply_new;
+        token_reserves[token] := token_reserve_new;
+        token_balances[token][sender] := sender_balance_new;
+        msg = { _tag : "LiquidityManagerSuccess"; _recipient : sender; _amount : refund };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "LiquidityManagerSuccessFailure"; _recipient : _sender; _amount : zero;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+(* Response function for unsuccessful LiquidityManager action *)
+transition LiquidityManagerFailure(sender : ByStr20, refund : Uint128, code : Uint32 )
+    l_m <- liquidity_manager;
+    l_m_sent = builtin eq l_m _sender;
+    match l_m_sent with
+    |   True =>
+        msg = { _tag : "LiquidityManagerFailure"; _recipient : sender; _amount : refund;
+                code : code };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "LiquidityManagerFailureFailure"; _recipient : _sender; _amount : zero;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+(** Getters **)
+
+(* Gets token address from token_id *)
+transition TokenAddress (token_id : Uint128)
+    (* returns Option ByStr20 in token_address *)
+    token_address <- id_to_token[token_id];
+    msg = { _tag : "TokenAddressResponse"; _recipient : _sender; _amount : zero;
+            token_address : token_address };
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* Gets the total_supply of a token *)
+transition TotalSupply (token : ByStr20)
+    (* returns Option Uint128 in total_supply *)
+    total_supply <- token_total_supplies[token];
+    msg = { _tag : "TotalSupplyResponse"; _recipient : _sender; _amount : zero;
+            total_supply : total_supply };
+    msgs = one_msg msg;
+    send msgs
+end
+
+(* Gets the reserve of a token *)
+transition Reserve (token : ByStr20)
+    (* returns Option Uint128 in total_supply *)
+    reserve <- token_reserves[token];
+    msg = { _tag : "ReserveResponse"; _recipient : _sender; _amount : zero;
+            reserve : reserve };
+    msgs = one_msg msg;
+    send msgs
 end

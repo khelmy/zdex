@@ -3,4 +3,4 @@ scilla_version 0
 library ZilToToken
 
 contract ZilToToken
-(hub_address : ByStr20)
+(hub : ByStr20)
