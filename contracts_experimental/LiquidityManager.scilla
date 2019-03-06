@@ -73,7 +73,7 @@ field fx_pending : Uint128 = zero
 (* Logic for AddLiquidity *)
 transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
         max_tokens : Uint128, deadline : BNum, total_supply : Option Uint128,
-        sender_balance : Option Uint128, reserve : Option Uint128,
+        sender_balance : Option Uint128, token_reserve : Option Uint128,
         balance : Uint128, zil_sold : Uint128, sender : ByStr20)
     hub_sent = builtin eq _sender hub;
     match hub_sent with
@@ -90,7 +90,7 @@ transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
                     zero_liquidity = builtin eq t_s zero;
                     match zero_liquidity with
                     |   False =>
-                        match reserve with
+                        match token_reserve with
                         |   Some t_r =>
                             zil_reserve = builtin sub balance zil_sold;
                             amount_t_r = builtin mul zil_sold t_r;
@@ -193,7 +193,7 @@ end
 
 transition RemoveLiquidityCore (token : ByStr20, amount : Uint128, min_zil : Uint128,
         min_tokens : Uint128, deadline : BNum, recipient : ByStr20,
-        total_supply : Option Uint128, sender_balance : Option Uint128, reserve : Option Uint128,
+        total_supply : Option Uint128, sender_balance : Option Uint128, token_reserve : Option Uint128,
         balance : Uint128, sender : ByStr20)
     hub_sent = builtin eq _sender hub;
     match hub_sent with
@@ -210,7 +210,7 @@ transition RemoveLiquidityCore (token : ByStr20, amount : Uint128, min_zil : Uin
                     t_s_zero = builtin eq t_s zero;
                     match t_s_zero with
                     |   False =>
-                        match reserve with
+                        match token_reserve with
                         |   Some t_r =>
                             amount_bal = builtin mul amount balance;
                             zil_amount = builtin div amount_bal t_s;
