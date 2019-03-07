@@ -7,8 +7,9 @@ library LiquidityManager
 let one = Uint128 1
 let zero = Uint128 0
 let ten_e_six = Uint128 1000000
-
 let zero_address = 0x0000000000000000000000000000000000000000
+
+let failure_label = "LiquidityManagerFailure"
 
 let token_not_found_code = Uint32 3
 let order_expired_code = Uint32 4
@@ -126,15 +127,15 @@ transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
                                     send msgs
                                 end
                             |   False =>
-                                msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                        sender : sender; refund : zil_sold;
+                                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                        sender : sender; refund : zil_sold; label : failure_label;
                                         code : order_not_met_code };
                                 msgs = one_msg msg;
                                 send msgs
                             end
                         |   None =>
-                            msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                    sender : sender; refund : zil_sold;
+                            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                    sender : sender; refund : zil_sold; label : failure_label;
                                     code : token_not_found_code };
                             msgs = one_msg msg;
                             send msgs
@@ -154,37 +155,37 @@ transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
                             msgs = one_msg msg;
                             send msgs
                         |   False =>
-                            msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                    sender : sender; refund : zil_sold;
+                            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                    sender : sender; refund : zil_sold; label : failure_label;
                                     code : order_not_met_code };
                             msgs = one_msg msg;
                             send msgs
                         end
                     end
                 |   None =>
-                    msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                            sender : sender; refund : zil_sold;
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : sender; refund : zil_sold; label : failure_label;
                             code : token_not_found_code };
                     msgs = one_msg msg;
                     send msgs
                 end
             |   True =>
-                msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                        sender : sender; refund : zil_sold;
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : sender; refund : zil_sold; label : failure_label;
                         code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
         |   False =>
-            msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                    sender : sender; refund : zil_sold;
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : sender; refund : zil_sold; label : failure_label;
                     code : order_expired_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -237,57 +238,57 @@ transition RemoveLiquidityCore (token : ByStr20, amount : Uint128, min_zil : Uin
                                     msgs = one_msg msg;
                                     send msgs
                                 |   None =>
-                                    msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                            sender : sender; refund : zero;
+                                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                            sender : sender; refund : zero; label : failure_label;
                                             code : bad_balance_code };
                                     msgs = one_msg msg;
                                     send msgs
                                 end
                             |   False =>
-                                msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                        sender : sender; refund : zero;
+                                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                        sender : sender; refund : zero; label : failure_label;
                                         code : order_not_met_code };
                                 msgs = one_msg msg;
                                 send msgs
                             end
                         |   None =>
-                            msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                    sender : sender; refund : zero;
+                            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                    sender : sender; refund : zero; label : failure_label;
                                     code : token_not_found_code };
                             msgs = one_msg msg;
                             send msgs
                         end
                     |   True =>
-                        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                                sender : sender; refund : zero;
+                        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                sender : sender; refund : zero; label : failure_label;
                                 code : parameter_is_zero_code };
                         msgs = one_msg msg;
                         send msgs
                     end
                 |   None =>
-                    msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                            sender : sender; refund : zero;
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : sender; refund : zero; label : failure_label;
                             code : token_not_found_code };
                     msgs = one_msg msg;
                     send msgs
                 end
             |   True =>
-                msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                        sender : sender; refund : zero;
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : sender; refund : zero; label : failure_label;
                         code : parameter_is_zero_code };
                 msgs = one_msg msg;
                 send msgs
             end
         |   False =>
-            msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                    sender : sender; refund : zero;
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : sender; refund : zero; label : failure_label;
                     code : order_expired_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -319,8 +320,8 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         msgs = one_msg msg;
         send msgs
     |   False =>
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -341,14 +342,14 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                sender : s_p; refund : z_s_p;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : s_p; refund : z_s_p; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs

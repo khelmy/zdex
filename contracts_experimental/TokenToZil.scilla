@@ -1,6 +1,281 @@
 scilla_version 0
 
+import BoolUtils
+
 library TokenToZil
+
+let one = Uint128 1
+let zero = Uint128 0
+let zero_address = 0x0000000000000000000000000000000000000000
+
+let fee_ratio_kept = Uint128 997
+let fee_ratio_denom = Uint128 1000
+
+let failure_label = "TokenToZilFailure"
+
+let token_not_found_code = Uint32 3
+let order_expired_code = Uint32 4
+let order_not_met_code = Uint32 5
+let parameter_is_zero_code = Uint32 6
+let private_function_called_code = Uint32 7
+
+(* returns Uint128 *)
+let input_price =
+    fun (input_amount : Uint128) =>
+    fun (input_reserve : Uint128) =>
+    fun (output_reserve : Uint128) =>
+        (* assert input_reserve > 0 and output_reserve > 0 *)
+        let input_fee_kept = builtin mul input_amount fee_ratio_kept in
+        let numerator = builtin mul input_fee_kept output_reserve in
+        let input_reserve_denom = builtin mul input_reserve fee_ratio_denom in
+        let denominator = builtin add input_reserve_denom input_fee_kept in
+        builtin div numerator denominator
+
+(* returns Uint128 *)
+let output_price =
+    fun (output_amount : Uint128) =>
+    fun (input_reserve : Uint128) =>
+    fun (output_reserve : Uint128) =>
+        (* assert input_reserve > 0 and output_reserve > 0 *)
+        let in_res_out_amount = builtin mul input_reserve output_amount in
+        let numerator = builtin mul in_res_out_amount fee_ratio_denom in
+        let out_res_amount = builtin sub output_reserve output_amount in
+        let denominator = builtin mul out_res_amount fee_ratio_kept in
+        let ratio = builtin div numerator denominator in
+        builtin add ratio one
+
+let any_zero_double =
+    fun (first : Uint128) =>
+    fun (second : Uint128) =>
+        let f_zero = builtin eq first zero in
+        let s_zero = builtin eq second zero in
+        orb f_zero s_zero
+
+let any_zero_triple =
+    fun (first : Uint128) =>
+    fun (second : Uint128) =>
+    fun (third : Uint128) =>
+        let fs_zero = any_zero_double first second in
+        let t_zero = builtin eq third zero in
+        orb fs_zero t_zero
+
+let ble =
+    fun (b1 : BNum ) =>
+    fun (b2 : BNum ) =>
+        let b1_lt = builtin blt b1 b2 in
+        let b_eq = builtin eq b1 b2 in
+        orb b1_lt b_eq
+
+(* Modified from SimpleDex *)
+(* returns singleton List Message *)
+let one_msg =
+    fun (msg : Message) =>
+        let nil_msg = Nil {Message} in
+        Cons {Message} msg nil_msg
+
+let le_int =
+  fun (a : Uint128) => fun (b : Uint128) =>
+    let x = builtin lt a b in
+    match x with
+    | True => True
+    | False =>
+      builtin eq a b
+    end
 
 contract TokenToZil
 (hub : ByStr20)
+
+field token_reserve_pending : Uint128 = zero
+field sender_pending : ByStr20 = zero_address
+field token_pending : ByStr20 = zero_address
+field zil_sold_pending : Uint128 = zero
+field zil_bought_pending : Uint128 = zero
+
+transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20,
+        token_reserve : Option Uint128, balance : Uint128)
+    (* private *)
+    (* calls FungibleToken.TransferFrom() *)
+    hub_sent = builtin eq _sender hub;
+    match hub_sent with
+    |   True =>
+        blocknumber <- & BLOCKNUMBER;
+        block_valid = ble blocknumber deadline;
+        match block_valid with
+        |   True =>
+            match token_reserve with
+            |   Some t_r =>
+                any_param_zero = any_zero_triple tokens_sold t_r balance;
+                match any_param_zero with
+                |   False =>
+                    zil_bought = input_price tokens_sold t_r balance;
+                    enough_bought = le_int min_zil zil_bought;
+                    match enough_bought with
+                    |   True =>
+                        sender_pending := buyer;
+                        token_pending := token;
+                        zil_bought_pending := zil_bought;
+                        token_reserve_new = builtin add t_r tokens_sold;
+                        token_reserve_pending := token_reserve_new;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : buyer; to : hub; tokens : tokens_sold};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   False =>
+                        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                sender : buyer; refund : zero; label : failure_label;
+                                code : order_not_met_code };
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   True =>
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : buyer; refund : zero; label : failure_label;
+                            code : parameter_is_zero_code };
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : buyer; refund : zero; label : failure_label;
+                        code : token_not_found_code };
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   False =>
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : buyer; refund : zero; label : failure_label;
+                    code : order_expired_code };
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   False =>
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : buyer; refund : zero; label : failure_label;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20,
+        token_reserve : Option Uint128, balance : Uint128)
+    (* private *)
+    (* calls FungibleToken.TransferFrom() *)
+    hub_sent = builtin eq _sender hub;
+    match hub_sent with
+    |   True =>
+        blocknumber <- & BLOCKNUMBER;
+        block_valid = ble blocknumber deadline;
+        match block_valid with
+        |   True =>
+            match token_reserve with
+            |   Some t_r =>
+                any_param_zero = any_zero_double zil_bought t_r;
+                match any_param_zero with
+                |   False =>
+                    tokens_sold = output_price zil_bought t_r balance;
+                    enough_sold = le_int tokens_sold max_tokens;
+                    match enough_sold with
+                    |   True =>
+                        sender_pending := buyer;
+                        token_pending := token;
+                        zil_bought_pending := zil_bought;
+                        token_reserve_new = builtin add t_r tokens_sold;
+                        token_reserve_pending := token_reserve_new;
+                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                from : buyer; to : hub; tokens : tokens_sold};
+                        msgs = one_msg msg;
+                        send msgs
+                    |   False =>
+                        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                sender : buyer; refund : zero; label : failure_label;
+                                code : order_not_met_code };
+                        msgs = one_msg msg;
+                        send msgs
+                    end
+                |   True =>
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : buyer; refund : zero; label : failure_label;
+                            code : parameter_is_zero_code };
+                    msgs = one_msg msg;
+                    send msgs
+                end
+            |   None =>
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : buyer; refund : zero; label : failure_label;
+                        code : token_not_found_code };
+                msgs = one_msg msg;
+                send msgs
+            end
+        |   False =>
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : buyer; refund : zero; label : failure_label;
+                    code : order_expired_code };
+            msgs = one_msg msg;
+            send msgs
+        end
+    |   False =>
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : buyer; refund : zero; label : failure_label;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+(** Response Functions **)
+transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    t_p <- token_pending;
+    token_sent = builtin eq t_p _sender;
+    match token_sent with
+    |   True =>
+        t_r_p <- token_reserve_pending;
+        s_p <- sender_pending;
+        t_p <- token_pending;
+        z_b_p <- zil_bought_pending;
+        token_reserve_pending := zero;
+        sender_pending := zero_address;
+        token_pending := zero_address;
+        zil_sold_pending := zero;
+        zil_bought_pending := zero;
+        msg = { _tag : "TradeSuccess"; _recipient : hub; _amount : zero;
+                sender : s_p; refund : z_b_p; token_reserve_new : t_r_p;
+                token : t_p };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : Uint128)
+    t_p <- token_pending;
+    token_sent = builtin eq t_p _sender;
+    match token_sent with
+    |   True =>
+        s_p <- sender_pending;
+        z_s_p <- zil_sold_pending;
+        token_reserve_pending := zero;
+        sender_pending := zero_address;
+        token_pending := zero_address;
+        zil_sold_pending := zero;
+        zil_bought_pending := zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : s_p; refund : z_s_p; label : failure_label;
+                code : order_not_met_code };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
+                code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end

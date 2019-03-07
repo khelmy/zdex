@@ -11,6 +11,8 @@ let zero_address = 0x0000000000000000000000000000000000000000
 let fee_ratio_kept = Uint128 997
 let fee_ratio_denom = Uint128 1000
 
+let failure_label = "ZilToTokenFailure"
+
 let token_not_found_code = Uint32 3
 let order_expired_code = Uint32 4
 let order_not_met_code = Uint32 5
@@ -119,36 +121,36 @@ transition ZilToTokenInput (token : ByStr20, zil_sold : Uint128, min_tokens : Ui
                         msgs = one_msg msg;
                         send msgs
                     |   False =>
-                        msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                                sender : buyer; refund : zil_sold;
+                        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                sender : buyer; refund : zil_sold; label : failure_label;
                                 code : order_not_met_code };
                         msgs = one_msg msg;
                         send msgs
                     end
                 |   True =>
-                    msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                            sender : buyer; refund : zil_sold;
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : buyer; refund : zil_sold; label : failure_label;
                             code : parameter_is_zero_code };
                     msgs = one_msg msg;
                     send msgs
                 end
             |   None =>
-                msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                        sender : buyer; refund : zil_sold;
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : buyer; refund : zil_sold; label : failure_label;
                         code : token_not_found_code };
                 msgs = one_msg msg;
                 send msgs
             end
         |   False =>
-            msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                    sender : buyer; refund : zil_sold;
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : buyer; refund : zil_sold; label : failure_label;
                     code : order_expired_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                sender : buyer; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : buyer; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -184,29 +186,29 @@ transition ZilToTokenOutput (token : ByStr20, tokens_bought : Uint128, max_zil :
                     msgs = one_msg msg;
                     send msgs
                 |   True =>
-                    msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                            sender : buyer; refund : max_zil;
+                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                            sender : buyer; refund : max_zil; label : failure_label;
                             code : parameter_is_zero_code };
                     msgs = one_msg msg;
                     send msgs
                 end
             |   None =>
-                msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                        sender : buyer; refund : max_zil;
+                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                        sender : buyer; refund : max_zil; label : failure_label;
                         code : token_not_found_code };
                 msgs = one_msg msg;
                 send msgs
             end
         |   False =>
-            msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                    sender : buyer; refund : max_zil;
+            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                    sender : buyer; refund : max_zil; label : failure_label;
                     code : order_expired_code };
             msgs = one_msg msg;
             send msgs
         end
     |   False =>
-        msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                sender : buyer; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : buyer; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -228,14 +230,14 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
-        msg = { _tag : "ZilToTokenSuccess"; _recipient : hub; _amount : zero;
+        msg = { _tag : "TradeSuccess"; _recipient : hub; _amount : zero;
                 sender : s_p; refund : z_b_p; token_reserve_new : t_r_p;
                 token : t_p };
         msgs = one_msg msg;
         send msgs
     |   False =>
-        msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
@@ -254,14 +256,14 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
-        msg = { _tag : "ZilToTokenSuccess"; _recipient : hub; _amount : zero;
-                sender : s_p; refund : z_s_p;
-                code : private_function_called_code };
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : s_p; refund : z_s_p; label : failure_label;
+                code : order_not_met_code };
         msgs = one_msg msg;
         send msgs
     |   False =>
-        msg = { _tag : "ZilToTokenFailure"; _recipient : hub; _amount : zero;
-                sender : sender; refund : zero;
+        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                sender : sender; refund : zero; label : failure_label;
                 code : private_function_called_code };
         msgs = one_msg msg;
         send msgs

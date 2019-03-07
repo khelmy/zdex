@@ -196,45 +196,6 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
     send msgs
 end
 
-(* Response function for successful LiquidityManager action *)
-transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : ByStr20,
-        total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128)
-    l_m <- liquidity_manager;
-    l_m_sent = builtin eq l_m _sender;
-    match l_m_sent with
-    |   True =>
-        token_total_supplies[token] := total_supply_new;
-        token_reserves[token] := token_reserve_new;
-        token_balances[token][sender] := sender_balance_new;
-        msg = { _tag : "LiquidityManagerSuccess"; _recipient : sender; _amount : refund };
-        msgs = one_msg msg;
-        send msgs
-    |   False =>
-        msg = { _tag : "LiquidityManagerSuccessFailure"; _recipient : _sender; _amount : zero;
-                code : private_function_called_code };
-        msgs = one_msg msg;
-        send msgs
-    end
-end
-
-(* Response function for unsuccessful LiquidityManager action *)
-transition LiquidityManagerFailure(sender : ByStr20, refund : Uint128, code : Uint32)
-    l_m <- liquidity_manager;
-    l_m_sent = builtin eq l_m _sender;
-    match l_m_sent with
-    |   True =>
-        msg = { _tag : "LiquidityManagerFailure"; _recipient : sender; _amount : refund;
-                code : code };
-        msgs = one_msg msg;
-        send msgs
-    |   False =>
-        msg = { _tag : "LiquidityManagerFailureFailure"; _recipient : _sender; _amount : zero;
-                code : private_function_called_code };
-        msgs = one_msg msg;
-        send msgs
-    end
-end
-
 (** ZilToToken Calls **)
 (* Input calls *)
 transition ZilToTokenSwapInput (token : ByStr20, min_tokens : Uint128,
@@ -320,13 +281,58 @@ transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
     end
 end
 
-(* Response function for successful ZilToToken action *)
-transition ZilToTokenSuccess(sender : ByStr20, refund : Uint128, token : ByStr20, token_reserve_new : Uint128)
-    z_t <- zil_to_token;
-    z_t_sent = builtin eq z_t _sender;
-    match z_t_sent with
+(** TokenToZil Calls **)
+(* Input calls *)
+transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum)
+    (* calls TokenToZilInput() *)
+    t_z <- token_to_zil;
+    token_reserve <- token_reserves[token];
+    balance <- _balance;
+    msg = { _tag : "TokenToZilInput"; _recipient : t_z; _amount : zero;
+            token : token; tokens_sold : tokens_sold; min_zil : min_zil;
+            deadline : deadline; buyer : _sender; recipient : _sender;
+            token_reserve : token_reserve; balance : balance };
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
+        min_zil : Uint128, deadline : BNum, recipient : ByStr20)
+    (* calls TokenToZilInput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   False =>
+        t_z <- token_to_zil;
+        token_reserve <- token_reserves[token];
+        balance <- _balance;
+        msg = { _tag : "TokenToZilInput"; _recipient : t_z; _amount : zero;
+                token : token; tokens_sold : tokens_sold; min_zil : min_zil;
+                deadline : deadline; buyer : _sender; recipient : recipient;
+                token_reserve : token_reserve; balance : balance };
+        msgs = one_msg msg;
+        send msgs
     |   True =>
+        msg = { _tag : "TokenToZilTransferInputFailure"; _recipient : _sender; _amount : zero;
+                code : bad_recipient_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+
+(*** Response Functions ***)
+(** Success Response **)
+(* Response function for successful LiquidityManager action *)
+transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : ByStr20,
+        total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128)
+    l_m <- liquidity_manager;
+    l_m_sent = builtin eq l_m _sender;
+    match l_m_sent with
+    |   True =>
+        token_total_supplies[token] := total_supply_new;
         token_reserves[token] := token_reserve_new;
+        token_balances[token][sender] := sender_balance_new;
         msg = { _tag : "LiquidityManagerSuccess"; _recipient : sender; _amount : refund };
         msgs = one_msg msg;
         send msgs
@@ -338,19 +344,42 @@ transition ZilToTokenSuccess(sender : ByStr20, refund : Uint128, token : ByStr20
     end
 end
 
-(* Response function for unsuccessful ZilToToken action *)
-transition ZilToTokenFailure(sender : ByStr20, refund : Uint128, code : Uint32)
+(* Response function for successful ZilToToken action *)
+transition TradeSuccess(sender : ByStr20, refund : Uint128, token : ByStr20, token_reserve_new : Uint128)
+    l_m <- liquidity_manager;
     z_t <- zil_to_token;
-    z_t_sent = builtin eq z_t _sender;
-    match z_t_sent with
+    t_z <- token_to_zil;
+    aux_sent = approved_address _sender l_m z_t t_z;
+    match aux_sent with
     |   True =>
-        msg = { _tag : "ZilToTokenFailure"; _recipient : sender; _amount : refund;
-                code : code };
+        token_reserves[token] := token_reserve_new;
+        msg = { _tag : "TradeSuccess"; _recipient : sender; _amount : refund };
         msgs = one_msg msg;
         send msgs
     |   False =>
-        msg = { _tag : "ZilToTokenFailureFailure"; _recipient : _sender; _amount : zero;
+        msg = { _tag : "TradeSuccessFailure"; _recipient : _sender; _amount : zero;
                 code : private_function_called_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
+
+(** Failure Response **)
+(* Response function for unsuccessful actions *)
+transition ActionFailure(sender : ByStr20, refund : Uint128, label : String, code : Uint32)
+    l_m <- liquidity_manager;
+    z_t <- zil_to_token;
+    t_z <- token_to_zil;
+    aux_sent = approved_address _sender l_m z_t t_z;
+    match aux_sent with
+    |   True =>
+        msg = { _tag : "ActionFailure"; _recipient : sender; _amount : refund;
+                label : label; code : code };
+        msgs = one_msg msg;
+        send msgs
+    |   False =>
+        msg = { _tag : "ActionFailureFailure"; _recipient : _sender; _amount : zero;
+                label : label; code : private_function_called_code };
         msgs = one_msg msg;
         send msgs
     end
