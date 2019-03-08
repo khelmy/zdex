@@ -1,4 +1,5 @@
 tests/privkey_testnet.txt
+tests/deploy_old.js
 data/*
 zdex-app/*
-contracts_experimental/ZDExchange_remaining.scilla
+contracts_old/*
