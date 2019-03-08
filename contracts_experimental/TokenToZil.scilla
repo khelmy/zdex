@@ -90,10 +90,11 @@ field sender_pending : ByStr20 = zero_address
 field token_pending : ByStr20 = zero_address
 field zil_sold_pending : Uint128 = zero
 field zil_bought_pending : Uint128 = zero
+field balance_pending : Uint128 = zero
 
 transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
         min_zil : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20,
-        token_reserve : Option Uint128, balance : Uint128)
+        token_reserve : Option Uint128, balance : Option Uint128)
     (* private *)
     (* calls FungibleToken.TransferFrom() *)
     hub_sent = builtin eq _sender hub;
@@ -105,33 +106,44 @@ transition TokenToZilInput (token : ByStr20, tokens_sold : Uint128,
         |   True =>
             match token_reserve with
             |   Some t_r =>
-                any_param_zero = any_zero_triple tokens_sold t_r balance;
-                match any_param_zero with
-                |   False =>
-                    zil_bought = input_price tokens_sold t_r balance;
-                    enough_bought = le_int min_zil zil_bought;
-                    match enough_bought with
-                    |   True =>
-                        sender_pending := buyer;
-                        token_pending := token;
-                        zil_bought_pending := zil_bought;
-                        token_reserve_new = builtin add t_r tokens_sold;
-                        token_reserve_pending := token_reserve_new;
-                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                from : buyer; to : hub; tokens : tokens_sold};
-                        msgs = one_msg msg;
-                        send msgs
+                match balance with
+                |   Some b =>
+                    any_param_zero = any_zero_triple tokens_sold t_r b;
+                    match any_param_zero with
                     |   False =>
+                        zil_bought = input_price tokens_sold t_r b;
+                        enough_bought = le_int min_zil zil_bought;
+                        match enough_bought with
+                        |   True =>
+                            sender_pending := buyer;
+                            token_pending := token;
+                            zil_bought_pending := zil_bought;
+                            token_reserve_new = builtin add t_r tokens_sold;
+                            token_reserve_pending := token_reserve_new;
+                            balance_new = builtin sub b zil_bought;
+                            balance_pending := balance_new;
+                            msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                    from : buyer; to : hub; tokens : tokens_sold};
+                            msgs = one_msg msg;
+                            send msgs
+                        |   False =>
+                            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                    sender : buyer; refund : zero; label : failure_label;
+                                    code : order_not_met_code };
+                            msgs = one_msg msg;
+                            send msgs
+                        end
+                    |   True =>
                         msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                 sender : buyer; refund : zero; label : failure_label;
-                                code : order_not_met_code };
+                                code : parameter_is_zero_code };
                         msgs = one_msg msg;
                         send msgs
                     end
-                |   True =>
+                |   None =>
                     msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                             sender : buyer; refund : zero; label : failure_label;
-                            code : parameter_is_zero_code };
+                            code : token_not_found_code };
                     msgs = one_msg msg;
                     send msgs
                 end
@@ -160,7 +172,7 @@ end
 
 transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
         max_tokens : Uint128, deadline : BNum, buyer : ByStr20, recipient : ByStr20,
-        token_reserve : Option Uint128, balance : Uint128)
+        token_reserve : Option Uint128, balance : Option Uint128)
     (* private *)
     (* calls FungibleToken.TransferFrom() *)
     hub_sent = builtin eq _sender hub;
@@ -175,23 +187,34 @@ transition TokenToZilOutput (token : ByStr20, zil_bought : Uint128,
                 any_param_zero = any_zero_double zil_bought t_r;
                 match any_param_zero with
                 |   False =>
-                    tokens_sold = output_price zil_bought t_r balance;
-                    enough_sold = le_int tokens_sold max_tokens;
-                    match enough_sold with
-                    |   True =>
-                        sender_pending := buyer;
-                        token_pending := token;
-                        zil_bought_pending := zil_bought;
-                        token_reserve_new = builtin add t_r tokens_sold;
-                        token_reserve_pending := token_reserve_new;
-                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                from : buyer; to : hub; tokens : tokens_sold};
-                        msgs = one_msg msg;
-                        send msgs
-                    |   False =>
+                    match balance with
+                    |   Some b =>
+                        tokens_sold = output_price zil_bought t_r b;
+                        enough_sold = le_int tokens_sold max_tokens;
+                        match enough_sold with
+                        |   True =>
+                            sender_pending := buyer;
+                            token_pending := token;
+                            zil_bought_pending := zil_bought;
+                            token_reserve_new = builtin add t_r tokens_sold;
+                            token_reserve_pending := token_reserve_new;
+                            balance_new = builtin sub b zil_bought;
+                            balance_pending := balance_new;
+                            msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                    from : buyer; to : hub; tokens : tokens_sold};
+                            msgs = one_msg msg;
+                            send msgs
+                        |   False =>
+                            msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                    sender : buyer; refund : zero; label : failure_label;
+                                    code : order_not_met_code };
+                            msgs = one_msg msg;
+                            send msgs
+                        end
+                    |   None =>
                         msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                 sender : buyer; refund : zero; label : failure_label;
-                                code : order_not_met_code };
+                                code : token_not_found_code };
                         msgs = one_msg msg;
                         send msgs
                     end
@@ -235,14 +258,16 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         s_p <- sender_pending;
         t_p <- token_pending;
         z_b_p <- zil_bought_pending;
+        b_p <- balance_pending;
         token_reserve_pending := zero;
         sender_pending := zero_address;
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
+        balance_pending := zero;
         msg = { _tag : "TradeSuccess"; _recipient : hub; _amount : zero;
-                sender : s_p; refund : z_b_p; token_reserve_new : t_r_p;
-                token : t_p };
+                sender : s_p; refund : z_b_p; token : t_p;
+                token_reserve_new : t_r_p; token_zil_balance_new : b_p };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -266,6 +291,7 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
+        balance_pending := zero;
         msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                 sender : s_p; refund : z_s_p; label : failure_label;
                 code : order_not_met_code };

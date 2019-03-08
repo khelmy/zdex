@@ -67,6 +67,7 @@ field sender_pending : ByStr20 = zero_address
 field token_pending : ByStr20 = zero_address
 field zil_sold_pending : Uint128 = zero
 field zil_bought_pending : Uint128 = zero
+field balance_pending : Uint128 = zero
 
 (* What function is currently pending? *)
 field fx_pending : Uint128 = zero
@@ -75,7 +76,7 @@ field fx_pending : Uint128 = zero
 transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
         max_tokens : Uint128, deadline : BNum, total_supply : Option Uint128,
         sender_balance : Option Uint128, token_reserve : Option Uint128,
-        balance : Uint128, zil_sold : Uint128, sender : ByStr20)
+        balance : Option Uint128, zil_sold : Uint128, sender : ByStr20)
     hub_sent = builtin eq _sender hub;
     match hub_sent with
     |   True =>
@@ -93,43 +94,54 @@ transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
                     |   False =>
                         match token_reserve with
                         |   Some t_r =>
-                            zil_reserve = builtin sub balance zil_sold;
-                            amount_t_r = builtin mul zil_sold t_r;
-                            amount_tr_zr = builtin div amount_t_r zil_reserve;
-                            token_amount = builtin add amount_tr_zr one;
-                            amount_t_s = builtin mul zil_sold t_s;
-                            liquidity_minted = builtin div amount_t_s zil_reserve;
-                            enough_tokens = le_int token_amount max_tokens;
-                            enough_liquidity = le_int min_liquidity liquidity_minted;
-                            order_met = andb enough_tokens enough_liquidity;
-                            match order_met with
-                            |   True =>
-                                total_supply_new = builtin add t_s liquidity_minted;
-                                total_supply_pending := total_supply_new;
-                                sender_pending := sender;
-                                token_pending := token;
-                                zil_sold_pending := zil_sold;
-                                token_reserve_new = builtin add t_r max_tokens;
-                                token_reserve_pending := token_reserve_new;
-                                match sender_balance with
-                                |   Some s_b =>
-                                    sender_balance_new = builtin add s_b liquidity_minted;
-                                    sender_balance_pending := sender_balance_new;
-                                    msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                            from : sender; to : hub; tokens : token_amount};
-                                    msgs = one_msg msg;
-                                    send msgs
-                                |   None =>
-                                    sender_balance_pending := liquidity_minted;
-                                    msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                            from : sender; to : hub; tokens : token_amount};
+                            match balance with
+                            |   Some b =>
+                                zil_reserve = b;
+                                amount_t_r = builtin mul zil_sold t_r;
+                                amount_tr_zr = builtin div amount_t_r zil_reserve;
+                                token_amount = builtin add amount_tr_zr one;
+                                amount_t_s = builtin mul zil_sold t_s;
+                                liquidity_minted = builtin div amount_t_s zil_reserve;
+                                enough_tokens = le_int token_amount max_tokens;
+                                enough_liquidity = le_int min_liquidity liquidity_minted;
+                                order_met = andb enough_tokens enough_liquidity;
+                                match order_met with
+                                |   True =>
+                                    total_supply_new = builtin add t_s liquidity_minted;
+                                    total_supply_pending := total_supply_new;
+                                    sender_pending := sender;
+                                    token_pending := token;
+                                    zil_sold_pending := zil_sold;
+                                    token_reserve_new = builtin add t_r max_tokens;
+                                    token_reserve_pending := token_reserve_new;
+                                    balance_new = builtin add b zil_sold;
+                                    balance_pending := balance_new;
+                                    match sender_balance with
+                                    |   Some s_b =>
+                                        sender_balance_new = builtin add s_b liquidity_minted;
+                                        sender_balance_pending := sender_balance_new;
+                                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                                from : sender; to : hub; tokens : token_amount};
+                                        msgs = one_msg msg;
+                                        send msgs
+                                    |   None =>
+                                        sender_balance_pending := liquidity_minted;
+                                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                                from : sender; to : hub; tokens : token_amount};
+                                        msgs = one_msg msg;
+                                        send msgs
+                                    end
+                                |   False =>
+                                    msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                            sender : sender; refund : zil_sold; label : failure_label;
+                                            code : order_not_met_code };
                                     msgs = one_msg msg;
                                     send msgs
                                 end
-                            |   False =>
+                            |   None =>
                                 msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                         sender : sender; refund : zil_sold; label : failure_label;
-                                        code : order_not_met_code };
+                                        code : token_not_found_code };
                                 msgs = one_msg msg;
                                 send msgs
                             end
@@ -141,23 +153,34 @@ transition AddLiquidityCore (token : ByStr20, min_liquidity : Uint128,
                             send msgs
                         end
                     |   True =>
-                        enough_sold = le_int ten_e_six zil_sold;
-                        match enough_sold with
-                        |   True =>
-                            total_supply_pending := balance;
-                            sender_balance_pending := balance;
-                            sender_pending := sender;
-                            token_pending := token;
-                            zil_sold_pending := zil_sold;
-                            token_reserve_pending := max_tokens;
-                            msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                    from : sender; to : hub; tokens : max_tokens };
-                            msgs = one_msg msg;
-                            send msgs
-                        |   False =>
+                        match balance with
+                        |   Some b =>
+                            enough_sold = le_int ten_e_six zil_sold;
+                            match enough_sold with
+                            |   True =>
+                                total_supply_pending := b;
+                                sender_balance_pending := b;
+                                sender_pending := sender;
+                                token_pending := token;
+                                zil_sold_pending := zil_sold;
+                                token_reserve_pending := max_tokens;
+                                balance_new = builtin add b zil_sold;
+                                balance_pending := balance_new;
+                                msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                        from : sender; to : hub; tokens : max_tokens };
+                                msgs = one_msg msg;
+                                send msgs
+                            |   False =>
+                                msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                        sender : sender; refund : zil_sold; label : failure_label;
+                                        code : order_not_met_code };
+                                msgs = one_msg msg;
+                                send msgs
+                            end
+                        |   None =>
                             msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                     sender : sender; refund : zil_sold; label : failure_label;
-                                    code : order_not_met_code };
+                                    code : token_not_found_code };
                             msgs = one_msg msg;
                             send msgs
                         end
@@ -195,7 +218,7 @@ end
 transition RemoveLiquidityCore (token : ByStr20, amount : Uint128, min_zil : Uint128,
         min_tokens : Uint128, deadline : BNum, recipient : ByStr20,
         total_supply : Option Uint128, sender_balance : Option Uint128, token_reserve : Option Uint128,
-        balance : Uint128, sender : ByStr20)
+        balance : Option Uint128, sender : ByStr20)
     hub_sent = builtin eq _sender hub;
     match hub_sent with
     |   True =>
@@ -213,41 +236,52 @@ transition RemoveLiquidityCore (token : ByStr20, amount : Uint128, min_zil : Uin
                     |   False =>
                         match token_reserve with
                         |   Some t_r =>
-                            amount_bal = builtin mul amount balance;
-                            zil_amount = builtin div amount_bal t_s;
-                            amount_t_r = builtin mul amount t_r;
-                            token_amount = builtin div amount_t_r t_s;
-                            enough_zil = le_int min_zil zil_amount;
-                            enough_tokens = le_int min_tokens token_amount;
-                            order_met = andb enough_tokens enough_zil;
-                            match order_met with
-                            |   True =>
-                                match sender_balance with
-                                |   Some s_b =>
-                                    sender_pending := sender;
-                                    token_pending := token;
-                                    sender_balance_new = builtin sub s_b amount;
-                                    sender_balance_pending := sender_balance_new;
-                                    total_supply_new = builtin sub t_s amount;
-                                    total_supply_pending := total_supply_new;
-                                    zil_bought_pending := zil_amount;
-                                    token_reserve_new = builtin sub t_r token_amount;
-                                    token_reserve_pending := token_reserve_new;
-                                    msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
-                                            from : hub; to : recipient; tokens : token_amount};
-                                    msgs = one_msg msg;
-                                    send msgs
-                                |   None =>
+                            match balance with
+                            |   Some b =>
+                                amount_bal = builtin mul amount b;
+                                zil_amount = builtin div amount_bal t_s;
+                                amount_t_r = builtin mul amount t_r;
+                                token_amount = builtin div amount_t_r t_s;
+                                enough_zil = le_int min_zil zil_amount;
+                                enough_tokens = le_int min_tokens token_amount;
+                                order_met = andb enough_tokens enough_zil;
+                                match order_met with
+                                |   True =>
+                                    match sender_balance with
+                                    |   Some s_b =>
+                                        sender_pending := sender;
+                                        token_pending := token;
+                                        sender_balance_new = builtin sub s_b amount;
+                                        sender_balance_pending := sender_balance_new;
+                                        total_supply_new = builtin sub t_s amount;
+                                        total_supply_pending := total_supply_new;
+                                        zil_bought_pending := zil_amount;
+                                        token_reserve_new = builtin sub t_r token_amount;
+                                        token_reserve_pending := token_reserve_new;
+                                        balance_new = builtin sub b amount;
+                                        balance_pending := balance_new;
+                                        msg = { _tag : "TransferFrom"; _recipient : token; _amount : zero;
+                                                from : hub; to : recipient; tokens : token_amount};
+                                        msgs = one_msg msg;
+                                        send msgs
+                                    |   None =>
+                                        msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
+                                                sender : sender; refund : zero; label : failure_label;
+                                                code : bad_balance_code };
+                                        msgs = one_msg msg;
+                                        send msgs
+                                    end
+                                |   False =>
                                     msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                             sender : sender; refund : zero; label : failure_label;
-                                            code : bad_balance_code };
+                                            code : order_not_met_code };
                                     msgs = one_msg msg;
                                     send msgs
                                 end
-                            |   False =>
+                            |   None =>
                                 msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                                         sender : sender; refund : zero; label : failure_label;
-                                        code : order_not_met_code };
+                                        code : token_not_found_code };
                                 msgs = one_msg msg;
                                 send msgs
                             end
@@ -307,6 +341,7 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         s_p <- sender_pending;
         t_p <- token_pending;
         z_b_p <- zil_bought_pending;
+        b_p <- balance_pending;
         sender_balance_pending := zero;
         total_supply_pending := zero;
         token_reserve_pending := zero;
@@ -314,9 +349,10 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
+        balance_pending := zero;
         msg = { _tag : "LiquidityManagerSuccess"; _recipient : hub; _amount : zero;
-                sender : s_p; refund : z_b_p;
-                token : t_p; total_supply_new : t_s_p; token_reserve_new : t_r_p;  sender_balance_new : s_b_p };
+                sender : s_p; refund : z_b_p; token : t_p; total_supply_new : t_s_p;
+                token_reserve_new : t_r_p;  sender_balance_new : s_b_p; token_zil_balance_new : b_p };
         msgs = one_msg msg;
         send msgs
     |   False =>
@@ -342,6 +378,7 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
         token_pending := zero_address;
         zil_sold_pending := zero;
         zil_bought_pending := zero;
+        balance_pending := zero;
         msg = { _tag : "ActionFailure"; _recipient : hub; _amount : zero;
                 sender : s_p; refund : z_s_p; label : failure_label;
                 code : private_function_called_code };

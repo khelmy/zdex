@@ -46,6 +46,8 @@ field token_total_supplies : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field token_balances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 field token_allowances : Map ByStr20 (Map ByStr20 (Map ByStr20 Uint128)) = Emp ByStr20 (Map ByStr20 (Map ByStr20 Uint128))
 
+(* Zil allocation of each token, like balance in UniSwap exchange *)
+field token_zil_balances : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 (* Keep track of tokens, aux contracts, and approvals *)
 field token_contract_allowances : Map ByStr20 (Map ByStr20 Uint128) = Emp ByStr20 (Map ByStr20 Uint128)
 (* This hub's auxiliary contracts *)
@@ -151,6 +153,7 @@ transition CreateMarket (token : ByStr20)
         (* Update token_allowances *)
         allowances_new = Emp ByStr20 (Map ByStr20 Uint128);
         token_allowances[token] := allowances_new;
+        token_zil_balances[token] := zero;
         msg = { _tag : "CreateMarketSuccess"; _recipient : _sender; _amount : zero };
         msgs = one_msg msg;
         send msgs
@@ -168,12 +171,12 @@ transition AddLiquidity (token : ByStr20, min_liquidity : Uint128,
     l_m <- liquidity_manager;
     total_supply <- token_total_supplies[token];
     token_reserve <- token_reserves[token];
-    balance <- _balance;
+    token_zil_balance <- token_zil_balances[token];
     sender_balance <- token_balances[token][_sender];
     msg = { _tag : "AddLiquidityCore"; _recipient : l_m; _amount : zero;
             token : token; min_liquidity : min_liquidity; max_tokens : max_tokens; deadline : deadline;
             total_supply : total_supply; sender_balance : sender_balance;
-            token_reserve : token_reserve; balance : balance;
+            token_reserve : token_reserve; balance : token_zil_balance;
             zil_sold : _amount; sender : _sender };
     msgs = one_msg msg;
     send msgs
@@ -186,11 +189,11 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
     l_m <- liquidity_manager;
     total_supply <- token_total_supplies[token];
     reserve <- token_reserves[token];
-    balance <- _balance;
+    token_zil_balance <- token_zil_balances[token];
     sender_balance <- token_balances[token][_sender];
     msg = { _tag : "RemoveLiquidityCore"; _recipient : l_m; _amount : zero;
             token : token; amount : amount; min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-            total_supply : total_supply; sender_balance : sender_balance; reserve : reserve; balance : balance;
+            total_supply : total_supply; sender_balance : sender_balance; reserve : reserve; balance : token_zil_balance;
             sender : _sender };
     msgs = one_msg msg;
     send msgs
@@ -205,11 +208,11 @@ transition ZilToTokenSwapInput (token : ByStr20, min_tokens : Uint128,
     accept;
     z_t <- zil_to_token;
     token_reserve <- token_reserves[token];
-    balance <- _balance;
+    token_zil_balance <- token_zil_balances[token];
     msg = { _tag : "ZilToTokenInput"; _recipient : z_t; _amount : zero;
             token : token; zil_sold : _amount; min_tokens : min_tokens;
             deadline : deadline; buyer : _sender; recipient : _sender;
-            token_reserve : token_reserve; balance : balance };
+            token_reserve : token_reserve; balance : token_zil_balance };
     msgs = one_msg msg;
     send msgs
 end
@@ -224,11 +227,11 @@ transition ZilToTokenTransferInput (token : ByStr20, min_tokens : Uint128,
         accept;
         z_t <- zil_to_token;
         token_reserve <- token_reserves[token];
-        balance <- _balance;
+        token_zil_balance <- token_zil_balances[token];
         msg = { _tag : "ZilToTokenInput"; _recipient : z_t; _amount : zero;
                 token : token; zil_sold : _amount; min_tokens : min_tokens;
                 deadline : deadline; buyer : _sender; recipient : recipient;
-                token_reserve : token_reserve; balance : balance };
+                token_reserve : token_reserve; balance : token_zil_balance };
         msgs = one_msg msg;
         send msgs
     |   True =>
@@ -247,11 +250,11 @@ transition ZilToTokenSwapOutput (token : ByStr20, tokens_bought : Uint128,
     accept;
     z_t <- zil_to_token;
     token_reserve <- token_reserves[token];
-    balance <- _balance;
+    token_zil_balance <- token_zil_balances[token];
     msg = { _tag : "ZilToTokenOutput"; _recipient : z_t; _amount : zero;
             token : token; tokens_bought : tokens_bought; max_zil : _amount;
             deadline : deadline; buyer : _sender; recipient : _sender;
-            token_reserve : token_reserve; balance : balance };
+            token_reserve : token_reserve; balance : token_zil_balance };
     msgs = one_msg msg;
     send msgs
 end
@@ -266,11 +269,11 @@ transition ZilToTokenTransferOutput(token : ByStr20, tokens_bought : Uint128,
         accept;
         z_t <- zil_to_token;
         token_reserve <- token_reserves[token];
-        balance <- _balance;
+        token_zil_balance <- token_zil_balances[token];
         msg = { _tag : "ZilToTokenOutput"; _recipient : z_t; _amount : zero;
                 token : token; tokens_bought : tokens_bought; max_zil : _amount;
                 deadline : deadline; buyer : _sender; recipient : recipient;
-                token_reserve : token_reserve; balance : balance };
+                token_reserve : token_reserve; balance : token_zil_balance };
         msgs = one_msg msg;
         send msgs
     |   True =>
@@ -288,11 +291,11 @@ transition TokenToZilSwapInput (token : ByStr20, tokens_sold : Uint128,
     (* calls TokenToZilInput() *)
     t_z <- token_to_zil;
     token_reserve <- token_reserves[token];
-    balance <- _balance;
+    token_zil_balance <- token_zil_balances[token];
     msg = { _tag : "TokenToZilInput"; _recipient : t_z; _amount : zero;
             token : token; tokens_sold : tokens_sold; min_zil : min_zil;
             deadline : deadline; buyer : _sender; recipient : _sender;
-            token_reserve : token_reserve; balance : balance };
+            token_reserve : token_reserve; balance : token_zil_balance };
     msgs = one_msg msg;
     send msgs
 end
@@ -305,11 +308,11 @@ transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
     |   False =>
         t_z <- token_to_zil;
         token_reserve <- token_reserves[token];
-        balance <- _balance;
+        token_zil_balance <- token_zil_balances[token];
         msg = { _tag : "TokenToZilInput"; _recipient : t_z; _amount : zero;
                 token : token; tokens_sold : tokens_sold; min_zil : min_zil;
                 deadline : deadline; buyer : _sender; recipient : recipient;
-                token_reserve : token_reserve; balance : balance };
+                token_reserve : token_reserve; balance : token_zil_balance };
         msgs = one_msg msg;
         send msgs
     |   True =>
@@ -325,7 +328,8 @@ end
 (** Success Response **)
 (* Response function for successful LiquidityManager action *)
 transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : ByStr20,
-        total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128)
+        total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128,
+        token_zil_balance_new : Uint128)
     l_m <- liquidity_manager;
     l_m_sent = builtin eq l_m _sender;
     match l_m_sent with
@@ -333,6 +337,7 @@ transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : B
         token_total_supplies[token] := total_supply_new;
         token_reserves[token] := token_reserve_new;
         token_balances[token][sender] := sender_balance_new;
+        token_zil_balances[token] := token_zil_balance_new;
         msg = { _tag : "LiquidityManagerSuccess"; _recipient : sender; _amount : refund };
         msgs = one_msg msg;
         send msgs
@@ -345,7 +350,8 @@ transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : B
 end
 
 (* Response function for successful ZilToToken action *)
-transition TradeSuccess(sender : ByStr20, refund : Uint128, token : ByStr20, token_reserve_new : Uint128)
+transition TradeSuccess(sender : ByStr20, refund : Uint128, token : ByStr20, token_reserve_new : Uint128,
+        token_zil_balance_new : Uint128)
     l_m <- liquidity_manager;
     z_t <- zil_to_token;
     t_z <- token_to_zil;
@@ -353,6 +359,7 @@ transition TradeSuccess(sender : ByStr20, refund : Uint128, token : ByStr20, tok
     match aux_sent with
     |   True =>
         token_reserves[token] := token_reserve_new;
+        token_zil_balances[token] := token_zil_balance_new;
         msg = { _tag : "TradeSuccess"; _recipient : sender; _amount : refund };
         msgs = one_msg msg;
         send msgs
