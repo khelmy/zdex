@@ -2,4 +2,5 @@ tests/privkey_testnet.txt
 tests/deploy_old.js
 data/*
 zdex-app/*
-contracts_old/*
+old_contracts/*
+tests/old_tests/*

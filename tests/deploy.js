@@ -12,9 +12,9 @@ function init_shared(privkey, zilliqa) {
   console.log("Your account address is:");
   console.log(`0x${address}`);
 
-  const zdex_code = fs.readFileSync('../contracts/ZDExchange.scilla', 'utf8');
+  const hub_code = fs.readFileSync('../contracts/Hub.scilla', 'utf8');
 
-  const zdex_init = [
+  const hub_init = [
     {
       vname: "_scilla_version",
       type: "Uint32",
@@ -56,7 +56,28 @@ function init_shared(privkey, zilliqa) {
     }
   ];
 
-  return [address, zdex_code, zdex_init, token_code, token_init];
+  return [address, hub_code, hub_init, token_code, token_init];
+}
+
+function init_aux(h_address) {
+  const l_m_code = fs.readFileSync('../contracts/LiquidityManager.scilla', 'utf8');
+  const z_t_code = fs.readFileSync('../contracts/ZilToToken.scilla', 'utf8');
+  const t_z_code = fs.readFileSync('../contracts/TokenToZil.scilla', 'utf8');
+
+  const aux_init = [
+    {
+      vname: "_scilla_version",
+      type: "Uint32",
+      value: "0"
+    },
+    {
+      vname: "hub",
+      type: "ByStr20",
+      value: `0x${h_address}`
+    }
+  ];
+
+  return [l_m_code, z_t_code, t_z_code, aux_init]
 }
 
 function init_kaya() {
@@ -73,10 +94,10 @@ function init_kaya() {
   const privkey = readline.question("Please input Private Keys (10): ");
   console.log('Private key used: ' + privkey);
 
-  const [address, zdex_code, zdex_init,
+  const [address, hub_code, hub_init,
     token_code, token_init] = init_shared(privkey, zilliqa);
 
-  return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init];
+  return [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init];
 }
 
 function init_testnet() {
@@ -88,10 +109,10 @@ function init_testnet() {
 
   const privkey = fs.readFileSync('./privkey_testnet.txt', 'utf8');
 
-  const [address, zdex_code, zdex_init,
+  const [address, hub_code, hub_init,
     token_code, token_init] = init_shared(privkey, zilliqa);
 
-  return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init];
+  return [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init];
 }
 
 // Verbose deploy function
@@ -147,31 +168,43 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
 async function deploy_all_v(network) {
   // DUMMY:
   if (network == -1) {
-    var [zilliqa, VERSION, address, zdex_code,
-      zdex_init, token_code, token_init] = init_kaya();
+    var [zilliqa, VERSION, address, hub_code,
+      hub_init, token_code, token_init] = init_kaya();
     // Dummy values
-    var z_address = '68ec958221f4fe002b7f438465e68b1bb46cbc27'
+    var h_address = '68ec958221f4fe002b7f438465e68b1bb46cbc27'
     var t_address = '968393a8c8980185ba66edfe08658526a7dc48ea'
   } else{
     // KAYA:
     if (network == 0) {
-      var [zilliqa, VERSION, address, zdex_code,
-        zdex_init, token_code, token_init] = init_kaya();
+      var [zilliqa, VERSION, address, hub_code,
+        hub_init, token_code, token_init] = init_kaya();
     }
     // TESTNET:
     else if (network == 1) {
-      var [zilliqa, VERSION, address, zdex_code,
-        zdex_init, token_code, token_init] = init_testnet();
+      var [zilliqa, VERSION, address, hub_code,
+        hub_init, token_code, token_init] = init_testnet();
     }
-    var z_address = await deploy_v(zilliqa, VERSION, address, zdex_code, zdex_init);
+    var h_address = await deploy_v(zilliqa, VERSION, address, hub_code, hub_init);
+    var [l_m_code, z_t_code, t_z_code, aux_init] = init_aux(h_address);
+    var l_m_address = await deploy_v(zilliqa, VERSION, address, l_m_code, aux_init);
+    var z_t_address = await deploy_v(zilliqa, VERSION, address, z_t_code, aux_init);
+    var t_z_address = await deploy_v(zilliqa, VERSION, address, t_z_code, aux_init);
+
     var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
   }
-  console.log("ZDExchange contract address: ");
-  console.log(z_address);
+  console.log("Hub contract address: ");
+  console.log(h_address);
+  console.log("LiquidityManager contract address: ");
+  console.log(l_m_address);
+  console.log("ZilToToken contract address: ");
+  console.log(z_t_address);
+  console.log("TokenToZil contract address: ");
+  console.log(t_z_address);
   console.log("FungibleToken contract address: ");
   console.log(t_address);
-  return [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init,
-    z_address, t_address];
+  return [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init,
+    l_m_code, z_t_code, t_z_code, aux_init,
+    h_address, l_m_address, z_t_address, t_z_address, t_address];
 }
 
 async function main(network = 0) {
