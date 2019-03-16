@@ -3,8 +3,18 @@ const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const CP = require ('@zilliqa-js/crypto');
 
+async function test_initialize(zilliqa, VERSION,
+    address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args) {
+  console.log("Testing CreateMarket");
+  try {
+
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 async function test_create_market(zilliqa, VERSION,
-    address, z_address, zdex, z_args, t_address, fungible_token, t_args) {
+    address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args) {
   console.log("Testing CreateMarket");
   try {
     /*
@@ -15,9 +25,10 @@ async function test_create_market(zilliqa, VERSION,
         value: `0x${t_address}`
       }
     ]);
-    var c_m_call = await zdex.call("CreateMarket", z_args, c_m_msg);
+    var c_m_call = await zdex.call("CreateMarket", h_args, c_m_msg);
     console.log(c_m_call);
     */
+    /*
     var balanceof_message = ({
       vname: "tokenOwner",
       type: "ByStr20",
@@ -25,6 +36,7 @@ async function test_create_market(zilliqa, VERSION,
     });
     var balanceof_call = await fungible_token.call("BalanceOf", t_args, balanceof_message);
     console.log(balanceof_call);
+    */
     /*
     var balanceOf_tx = zilliqa.transactions.new({
       version: VERSION,
@@ -54,9 +66,9 @@ async function test_create_market(zilliqa, VERSION,
   }
 }
 
-async function test_add_liquidity(zilliqa, VERSION,
-    address, z_address, zdex, z_args, t_address, fungible_token, t_args) {
-  console.log("Testing AddLiquidity");
+async function test_approve_aux(zilliqa, VERSION,
+    address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args) {
+  console.log("Testing CreateMarket");
   try {
 
   } catch (err) {
@@ -64,29 +76,19 @@ async function test_add_liquidity(zilliqa, VERSION,
   }
 }
 
-async function test_remove_liquidity(zilliqa, VERSION,
-    address, z_address, zdex, z_args, t_address, fungible_token, t_args) {
-  console.log("Testing RemoveLiquidity");
+async function test_hub(zilliqa, VERSION,
+    address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args) {
+  console.log("##### Testing Hub #####");
   try {
-
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-async function test_market_liquidity(zilliqa, VERSION,
-    address, z_address, zdex, z_args, t_address, fungible_token, t_args) {
-  console.log("##### Testing Market Creation and Liquidity #####");
-  try {
+    await test_initialize(zilliqa, VERSION,
+        address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args);
     await test_create_market(zilliqa, VERSION,
-        address, z_address, zdex, z_args, t_address, fungible_token, t_args);
-    await test_add_liquidity(zilliqa, VERSION,
-        address, z_address, zdex, z_args, t_address, fungible_token, t_args);
-    await test_remove_liquidity(zilliqa, VERSION,
-        address, z_address, zdex, z_args, t_address, fungible_token, t_args);
+        address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args);
+    await test_approve_aux(zilliqa, VERSION,
+        address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args);
   } catch (err) {
     console.log(err);
   }
 }
 
-exports.test_market_liquidity = test_market_liquidity;
+exports.test_hub = test_hub;

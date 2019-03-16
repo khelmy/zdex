@@ -4,26 +4,27 @@ const { Zilliqa } = require('@zilliqa-js/zilliqa');
 const CP = require ('@zilliqa-js/crypto');
 
 const deploy = require("./deploy.js");
-const m_l = require("./m_l_tests.js");
-const z_to_t = require("./z_to_t_tests.js");
-const t_to_z = require("./t_to_z_tests.js");
-const t_to_t = require("./t_to_t_tests.js");
+const hub = require("./hub_tests.js")
+const l_m = require("./l_m_tests.js");
+const z_t = require("./z_t_tests.js");
+const t_z = require("./t_z_tests.js");
 
-async function test_all_v(network, z_addr, t_addr) {
+async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr) {
   try {
-    if (z_addr == 0 || t_addr == 0) {
-      var [zilliqa, VERSION, address, zdex_code, zdex_init, token_code, token_init,
-        z_address, t_address] = await deploy.deploy_all_v(network);
+    if (h_addr == 0 || l_m_addr == 0 || z_t_addr == 0 || t_z_addr == 0 || t_addr == 0) {
+      var [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init,
+        l_m_code, z_t_code, t_z_code, aux_init,
+        h_address, l_m_address, z_t_address, t_z_address, t_address] = await deploy.deploy_all_v(network);
     }
     else {
-      var z_address = z_addr;
+      var h_address = h_addr;
       var t_address = t_addr;
     }
-    var zdex = zilliqa.contracts.at(z_address);
+    var zdex = zilliqa.contracts.at(h_address);
     var fungible_token = zilliqa.contracts.at(t_address);
-    var z_args = ({
+    var h_args = ({
       version: VERSION,
-      toAddr: z_address,
+      toAddr: h_address,
       amount: units.toQa('0', units.Units.Zil),
       gasPrice: units.toQa('1000', units.Units.Li),
       gasLimit: Long.fromNumber(1000)
@@ -35,26 +36,22 @@ async function test_all_v(network, z_addr, t_addr) {
       gasPrice: units.toQa('1000', units.Units.Li),
       gasLimit: Long.fromNumber(1000)
     });
-    
-    await m_l.test_market_liquidity(zilliqa, VERSION,
-        address, z_address, zdex, z_args, t_address, fungible_token, t_args);
-    await z_to_t.test_zil_to_token_trades(network, zilliqa, VERSION,
-        address, zdex_code, zdex_init, token_code,
-        token_init, z_address, t_address);
-    await t_to_z.test_token_to_zil_trades(network, zilliqa, VERSION,
-        address, zdex_code, zdex_init, token_code,
-        token_init, z_address, t_address);
-    await t_to_t.test_token_to_token_trades(network, zilliqa, VERSION,
-        address, zdex_code, zdex_init, token_code,
-        token_init, z_address, t_address);
+    await hub.test_hub(zilliqa, VERSION,
+        address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args);
+    await l_m.test_liquidity_manager(zilliqa, VERSION,
+        address, h_address, h_args, t_address, t_args);
+    await z_t.test_zil_to_token(network, zilliqa, VERSION,
+        address, h_address, h_args, t_address, t_args);
+    await t_z.test_token_to_zil(network, zilliqa, VERSION,
+        address, h_address, h_args, t_address, t_args);
     console.log("######### All Tests Passed! #########")
   } catch(err) {
     console.log(err);
   }
 }
 
-async function main(network = 0, z_addr = 0, t_addr = 0) {
-  await test_all_v(network, z_addr, t_addr);
+async function main(network = 0, h_addr = 0, l_m_addr = 0, z_t_addr = 0, t_z_addr = 0, t_addr = 0) {
+  await test_all_v(network, h_addr, t_addr);
   process.exit();
 }
 
@@ -65,6 +62,7 @@ if (typeof require != 'undefined' && require.main === module) {
     main(process.argv[2])
   } else {
     // TODO: Implement command line args to avoid re-deployment
-    main(process.argv[2], process.argv[3], process.argv[4])
+    main(process.argv[2], process.argv[3], process.argv[4], process.argv[5],
+      process.argv[6])
   }
 }

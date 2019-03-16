@@ -2,8 +2,7 @@ const zdex_lib = require("./zdex_lib.js");
 
 
 async function test_zil_to_token_swap_input(network, zilliqa, VERSION,
-    address, zdex_code, zdex_init, token_code,
-    token_init, z_address, t_address) {
+    address, h_address, h_args, t_address, t_args) {
   console.log("Testing ZilToTokenSwapInput");
   try {
 
@@ -13,8 +12,7 @@ async function test_zil_to_token_swap_input(network, zilliqa, VERSION,
 }
 
 async function test_zil_to_token_transfer_input(network, zilliqa, VERSION,
-    address, zdex_code, zdex_init, token_code,
-    token_init, z_address, t_address) {
+    address, h_address, h_args, t_address, t_args) {
   console.log("Testing ZilToTokenTransferInput");
   try {
 
@@ -24,8 +22,7 @@ async function test_zil_to_token_transfer_input(network, zilliqa, VERSION,
 }
 
 async function test_zil_to_token_swap_output(network, zilliqa, VERSION,
-    address, zdex_code, zdex_init, token_code,
-    token_init, z_address, t_address) {
+    address, h_address, h_args, t_address, t_args) {
   console.log("Testing ZilToTokenSwapOutput");
   try {
 
@@ -35,8 +32,7 @@ async function test_zil_to_token_swap_output(network, zilliqa, VERSION,
 }
 
 async function test_zil_to_token_transfer_output(network, zilliqa, VERSION,
-    address, zdex_code, zdex_init, token_code,
-    token_init, z_address, t_address) {
+    address, h_address, h_args, t_address, t_args) {
   console.log("Testing ZilToTokenTransferOutput");
   try {
 
@@ -45,26 +41,21 @@ async function test_zil_to_token_transfer_output(network, zilliqa, VERSION,
   }
 }
 
-async function test_zil_to_token_trades(network, zilliqa, VERSION,
-    address, zdex_code, zdex_init, token_code,
-    token_init, z_address, t_address) {
-  console.log("### Testing Zil To Token Trades ###");
+async function test_zil_to_token(network, zilliqa, VERSION,
+    address, h_address, h_args, t_address, t_args) {
+  console.log("### Testing ZilToToken ###");
   try {
     await test_zil_to_token_swap_input(network, zilliqa, VERSION,
-      address, zdex_code, zdex_init, token_code,
-      token_init, z_address, t_address);
+        address, h_address, h_args, t_address, t_args);
     await test_zil_to_token_transfer_input(network, zilliqa, VERSION,
-          address, zdex_code, zdex_init, token_code,
-          token_init, z_address, t_address);
+        address, h_address, h_args, t_address, t_args);
     await test_zil_to_token_swap_output(network, zilliqa, VERSION,
-        address, zdex_code, zdex_init, token_code,
-        token_init, z_address, t_address);
+        address, h_address, h_args, t_address, t_args);
     await test_zil_to_token_transfer_output(network, zilliqa, VERSION,
-        address, zdex_code, zdex_init, token_code,
-        token_init, z_address, t_address);
+        address, h_address, h_args, t_address, t_args);
   } catch (err) {
     console.log(err);
   }
 }
 
-exports.test_zil_to_token_trades = test_zil_to_token_trades;
+exports.test_zil_to_token = test_zil_to_token;
