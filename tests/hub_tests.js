@@ -1,14 +1,10 @@
-const { Transaction } = require('@zilliqa-js/account');
-const { BN, Long, bytes, units } = require('@zilliqa-js/util');
-const { Zilliqa } = require('@zilliqa-js/zilliqa');
-const CP = require ('@zilliqa-js/crypto');
+const common = require('./common.js');
 
 async function test_initialize(zilliqa, VERSION,
     address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args) {
   console.log("Testing Initialize");
   try {
-    let initialize_msg = Object.assign({}, h_args);
-    initialize_msg.data = ([
+    let data = ([
       {
         vname: "_tag",
         type: "String",
@@ -30,8 +26,7 @@ async function test_initialize(zilliqa, VERSION,
         value: `0x${t_z_address}`
       }
     ]);
-    let initialize_tx = zilliqa.transactions.new(initialize_msg);
-    let initialize_call = await zilliqa.blockchain.createTransaction(initialize_tx);
+    let initialize_call = await common.bundle_tx(zilliqa, h_args, data);
     console.log(initialize_call);
   } catch (err) {
     console.log(err);
@@ -42,8 +37,7 @@ async function test_create_market(zilliqa, VERSION,
     address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args) {
   console.log("Testing CreateMarket");
   try {
-    let create_market_msg = Object.assign({}, h_args);
-    create_market_msg.data = ([
+    let data = ([
       {
         vname: "_tag",
         type: "String",
@@ -55,8 +49,7 @@ async function test_create_market(zilliqa, VERSION,
         value: `0x${t_address}`
       }
     ]);
-    let create_market_tx = zilliqa.transactions.new(create_market_msg);
-    let create_market_call = await zilliqa.blockchain.createTransaction(create_market_tx);
+    let create_market_call = await common.bundle_tx(zilliqa, h_args, data);
     console.log(create_market_call);
   } catch (err) {
     console.log(err);
@@ -70,9 +63,10 @@ async function test_approve_aux(zilliqa, VERSION,
     console.log("Testing CreateMarket");
     try {
       let aux = [l_m_address, z_t_address, t_z_address];
+      let data = null;
+      let approve_aux_call = null;
       for (i in aux) {
-        approve_aux_msg = Object.assign({}, h_args);
-        approve_aux_msg.data = ([
+        data = ([
           {
             vname: "_tag",
             type: "String",
@@ -94,8 +88,7 @@ async function test_approve_aux(zilliqa, VERSION,
             value: "1000000"
           }
         ]);
-        approve_aux_tx = zilliqa.transactions.new(approve_aux_msg);
-        approve_aux_call = await zilliqa.blockchain.createTransaction(approve_aux_tx);
+        approve_aux_call = await common.bundle_tx(zilliqa, h_args, data);
         console.log(approve_aux_call);
       }
     } catch (err) {

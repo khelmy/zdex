@@ -1,7 +1,4 @@
-const { Transaction } = require('@zilliqa-js/account');
-const { BN, Long, bytes, units } = require('@zilliqa-js/util');
-const { Zilliqa } = require('@zilliqa-js/zilliqa');
-const CP = require ('@zilliqa-js/crypto');
+const common = require('./common.js');
 
 async function test_add_liquidity(zilliqa, VERSION,
     address, h_address, h_args, t_address, t_args) {

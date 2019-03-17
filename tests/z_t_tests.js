@@ -1,4 +1,5 @@
 const zdex_lib = require("./zdex_lib.js");
+const common = require('./common.js');
 
 
 async function test_zil_to_token_swap_input(network, zilliqa, VERSION,
