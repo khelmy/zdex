@@ -18,10 +18,11 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
     }
     else {
       var h_address = h_addr;
+      var l_m_address = l_m_addr;
+      var z_t_address = z_t_addr;
+      var t_z_address = t_z_addr;
       var t_address = t_addr;
     }
-    var zdex = zilliqa.contracts.at(h_address);
-    var fungible_token = zilliqa.contracts.at(t_address);
     var h_args = ({
       version: VERSION,
       toAddr: h_address,
@@ -37,7 +38,7 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
       gasLimit: Long.fromNumber(1000)
     });
     await hub.test_hub(zilliqa, VERSION,
-        address, h_address, h_args, l_m_addr, z_t_addr, t_z_addr, t_address, t_args);
+        address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args);
     await l_m.test_liquidity_manager(zilliqa, VERSION,
         address, h_address, h_args, t_address, t_args);
     await z_t.test_zil_to_token(network, zilliqa, VERSION,
@@ -51,7 +52,7 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
 }
 
 async function main(network = 0, h_addr = 0, l_m_addr = 0, z_t_addr = 0, t_z_addr = 0, t_addr = 0) {
-  await test_all_v(network, h_addr, t_addr);
+  await test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr);
   process.exit();
 }
 
