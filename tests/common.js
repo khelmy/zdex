@@ -14,3 +14,5 @@ async function bundle_tx(zilliqa, args, data) {
     console.log(err);
   }
 }
+
+exports.bundle_tx = bundle_tx;
