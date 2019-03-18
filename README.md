@@ -11,12 +11,16 @@ The most recent versions of each contract can be found on the Zilliqa testnet at
 
 Hub contract address:
 `ef767d4b1f39410a64670da167f38fe4ad2abbfb`
+
 LiquidityManager contract address:
 `d8be9be4b6fa6771ec8770dae0f0bcc02411a2c3`
+
 ZilToToken contract address:
 `ae3a6fbb5f1257dffea7e19fd1736fd08a0087ec`
+
 TokenToZil contract address:
 `4e791ec27c27ac3625f800a96e4e21d4c438bdb2`
+
 FungibleToken contract address:
 `19d50acde2caac28f4508219e223b26afaf9ed49`
 
