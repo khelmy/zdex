@@ -99,6 +99,7 @@ async function test_approve_aux(zilliqa, VERSION,
   }
 }
 
+// Runs tests for hub contract
 async function test_hub(zilliqa, VERSION,
     address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args) {
   console.log("##### Testing Hub #####");

@@ -89,6 +89,7 @@ async function test_remove_liquidity(zilliqa, VERSION,
   }
 }
 
+// Runs tests for liquidity manager contract
 async function test_liquidity_manager(zilliqa, VERSION,
     address, h_address, h_args, t_address, t_args) {
   console.log("##### Testing LiquidityManager #####");

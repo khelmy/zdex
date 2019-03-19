@@ -1,7 +1,7 @@
 const { Transaction } = require('@zilliqa-js/account');
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const { Zilliqa } = require('@zilliqa-js/zilliqa');
-const CP = require ('@zilliqa-js/crypto');
+const CP = require('@zilliqa-js/crypto');
 
 const deploy = require("./deploy.js");
 const hub = require("./hub_tests.js")
@@ -9,6 +9,7 @@ const l_m = require("./l_m_tests.js");
 const z_t = require("./z_t_tests.js");
 const t_z = require("./t_z_tests.js");
 
+// Runs tests for all contracts
 async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr) {
   try {
     if (h_addr == 0 || l_m_addr == 0 || z_t_addr == 0 || t_z_addr == 0 || t_addr == 0) {

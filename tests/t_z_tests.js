@@ -41,6 +41,7 @@ async function test_token_to_zil_transfer_output(network, zilliqa, VERSION,
   }
 }
 
+// Tests for token to zil contract
 async function test_token_to_zil(network, zilliqa, VERSION,
     address, h_address, h_args, t_address, t_args) {
   console.log("### Testing TokenToZil ###");
