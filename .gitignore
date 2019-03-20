@@ -4,3 +4,4 @@ data/*
 zdex-app/*
 old_contracts/*
 tests/old_tests/*
+tests/simple_test.js
