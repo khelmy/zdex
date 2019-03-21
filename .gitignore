@@ -1,4 +1,4 @@
-tests/privkey_testnet.txt
+tests/privkey_testnet*
 tests/deploy_old.js
 data/*
 zdex-app/*
