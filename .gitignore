@@ -1,7 +1,6 @@
 tests/privkey_testnet*
 tests/deploy_old.js
 data/*
-zdex-app/*
 old_contracts/*
 tests/old_tests/*
 tests/simple_test.js
