@@ -8,10 +8,11 @@ async function bundle_tx(zilliqa, args, data) {
   try {
     let msg = Object.assign({}, args);
     msg.data = JSON.stringify(data);
-    msg.toDS = true;
-    let tx = zilliqa.transactions.new(msg);
-    console.log(tx);
-    let tx_call = await zilliqa.blockchain.createTransaction(tx);
+    // msg.toDS = true;
+    let tx = zilliqa.transactions.new(msg, true);
+    let tx_signed = await zilliqa.wallet.sign(tx);
+    console.log(tx_signed);
+    let tx_call = await zilliqa.blockchain.createTransaction(tx_signed);
     return tx_call;
   } catch (err) {
     console.log(err);
