@@ -28,15 +28,15 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
       version: VERSION,
       toAddr: h_address,
       amount: units.toQa('0', units.Units.Zil),
-      gasPrice: units.toQa('90000', units.Units.Li),
-      gasLimit: Long.fromNumber(1000)
+      gasPrice: units.toQa('1000', units.Units.Li),
+      gasLimit: Long.fromNumber(90000)
     });
     var t_args = ({
       version: VERSION,
       toAddr: t_address,
       amount: units.toQa('0', units.Units.Zil),
-      gasPrice: units.toQa('90000', units.Units.Li),
-      gasLimit: Long.fromNumber(1000)
+      gasPrice: units.toQa('1000', units.Units.Li),
+      gasLimit: Long.fromNumber(90000)
     });
     await hub.test_hub(zilliqa, VERSION,
         address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args);
