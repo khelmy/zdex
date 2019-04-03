@@ -157,7 +157,7 @@ async function deploy_v(zilliqa, VERSION, address, code, init) {
     balance = await zilliqa.blockchain.getBalance(address);
     console.log(`Your new account balance is:`);
     console.log(balance.result)
-    return ctr.address;
+    return [ctr, ctr.address];
   } catch (err) {
     console.log(err);
   }
@@ -184,13 +184,13 @@ async function deploy_all_v(network) {
       var [zilliqa, VERSION, address, hub_code,
         hub_init, token_code, token_init] = init_testnet();
     }
-    var h_address = await deploy_v(zilliqa, VERSION, address, hub_code, hub_init);
+    var [h, h_address] = await deploy_v(zilliqa, VERSION, address, hub_code, hub_init);
     var [l_m_code, z_t_code, t_z_code, aux_init] = init_aux(h_address);
-    var l_m_address = await deploy_v(zilliqa, VERSION, address, l_m_code, aux_init);
-    var z_t_address = await deploy_v(zilliqa, VERSION, address, z_t_code, aux_init);
-    var t_z_address = await deploy_v(zilliqa, VERSION, address, t_z_code, aux_init);
+    var [l_m, l_m_address] = await deploy_v(zilliqa, VERSION, address, l_m_code, aux_init);
+    var [z_t, z_t_address] = await deploy_v(zilliqa, VERSION, address, z_t_code, aux_init);
+    var [t_z, t_z_address] = await deploy_v(zilliqa, VERSION, address, t_z_code, aux_init);
 
-    var t_address = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
+    var [t, t_address] = await deploy_v(zilliqa, VERSION, address, token_code, token_init);
   }
   console.log("Hub contract address: ");
   console.log(h_address);
@@ -204,7 +204,7 @@ async function deploy_all_v(network) {
   console.log(t_address);
   return [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init,
     l_m_code, z_t_code, t_z_code, aux_init,
-    h_address, l_m_address, z_t_address, t_z_address, t_address];
+    h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address];
 }
 
 async function main(network = 0) {

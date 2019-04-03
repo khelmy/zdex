@@ -15,7 +15,7 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
     if (h_addr == 0 || l_m_addr == 0 || z_t_addr == 0 || t_z_addr == 0 || t_addr == 0) {
       var [zilliqa, VERSION, address, hub_code, hub_init, token_code, token_init,
         l_m_code, z_t_code, t_z_code, aux_init,
-        h_address, l_m_address, z_t_address, t_z_address, t_address] = await deploy.deploy_all_v(network);
+        h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address] = await deploy.deploy_all_v(network);
     }
     else {
       var h_address = h_addr;
@@ -27,19 +27,25 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
     var h_args = ({
       version: VERSION,
       toAddr: h_address,
-      amount: units.toQa('0', units.Units.Zil),
+      amount: new BN(0),
       gasPrice: units.toQa('1000', units.Units.Li),
       gasLimit: Long.fromNumber(90000)
     });
     var t_args = ({
       version: VERSION,
       toAddr: t_address,
-      amount: units.toQa('0', units.Units.Zil),
+      amount: new BN(0),
       gasPrice: units.toQa('1000', units.Units.Li),
       gasLimit: Long.fromNumber(90000)
     });
+    var args = ({
+      version: VERSION,
+      amount: new BN(0),
+      gasPrice: units.toQa('1000', units.Units.Li),
+      gasLimit: Long.fromNumber(10000)
+    });
     await hub.test_hub(zilliqa, VERSION,
-        address, h_address, h_args, l_m_address, z_t_address, t_z_address, t_address, t_args);
+        address, h, h_address, h_args, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, t_args, args);
     await l_m.test_liquidity_manager(zilliqa, VERSION,
         address, h_address, h_args, t_address, t_args);
     await z_t.test_zil_to_token(network, zilliqa, VERSION,
