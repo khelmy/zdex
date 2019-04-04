@@ -45,7 +45,7 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
       gasLimit: Long.fromNumber(10000)
     });
     await hub.test_hub(zilliqa, VERSION,
-        address, h, h_address, h_args, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, t_args, args);
+        address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
     await l_m.test_liquidity_manager(zilliqa, VERSION,
         address, h_address, h_args, t_address, t_args);
     await z_t.test_zil_to_token(network, zilliqa, VERSION,
