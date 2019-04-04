@@ -6,17 +6,17 @@ async function test_initialize(zilliqa, VERSION,
   try {
     let data = ([
       {
-        _vname: "l_m_address",
+        vname: "l_m_address",
         type: "ByStr20",
         value: `0x${l_m_address}`
       },
       {
-        _vname: "z_t_address",
+        vname: "z_t_address",
         type: "ByStr20",
         value: `0x${z_t_address}`
       },
       {
-        _vname: "t_z_address",
+        vname: "t_z_address",
         type: "ByStr20",
         value: `0x${t_z_address}`
       }

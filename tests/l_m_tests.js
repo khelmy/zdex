@@ -14,22 +14,22 @@ async function test_add_liquidity(zilliqa, VERSION,
         value: "AddLiquidity"
       },
       {
-        _vname: "token",
+        vname: "token",
         type: "ByStr20",
         value: `0x${t_address}`
       },
       {
-        _vname: "min_liquidity",
+        vname: "min_liquidity",
         type: "Uint128",
         value: 2e4
       },
       {
-        _vname: "max_tokens",
+        vname: "max_tokens",
         type: "Uint128",
         value: 4e4
       },
       {
-        _vname: "deadline",
+        vname: "deadline",
         type: "BNum",
         value: 1e20
       }
@@ -52,32 +52,32 @@ async function test_remove_liquidity(zilliqa, VERSION,
         value: "RemoveLiquidity"
       },
       {
-        _vname: "token",
+        vname: "token",
         type: "ByStr20",
         value: `0x${t_address}`
       },
       {
-        _vname: "amount",
+        vname: "amount",
         type: "Uint128",
         value: 1e4
       },
       {
-        _vname: "min_zil",
+        vname: "min_zil",
         type: "Uint128",
         value: 1e13
       },
       {
-        _vname: "min_tokens",
+        vname: "min_tokens",
         type: "Uint128",
         value: 2e4
       },
       {
-        _vname: "deadline",
+        vname: "deadline",
         type: "BNum",
         value: 1e20
       },
       {
-        _vname: "recipient",
+        vname: "recipient",
         type: "ByStr20",
         value: `0x${address}`
       }
