@@ -10,7 +10,7 @@ Inspired by UniSwap: https://uniswap.io/
 The most recent versions of each contract can be found on the Zilliqa testnet at the addresses below:
 
 Hub contract address:
-`ef767d4b1f39410a64670da167f38fe4ad2abbfb`
+`98a2442bff44a870c7cee7619edac4662e976e6d`
 
 LiquidityManager contract address:
 `d8be9be4b6fa6771ec8770dae0f0bcc02411a2c3`

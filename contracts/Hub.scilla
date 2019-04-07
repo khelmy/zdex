@@ -326,6 +326,13 @@ end
 
 (*** Response Functions ***)
 (** Success Response **)
+(* Response function for successful Approval *)
+transition ApproveSuccess (approver : ByStr20, spender : ByStr20, amount : Uint128)
+    e = { _eventname : "ApproveSuccess"; token : _sender;
+        approver : approver; spender : spender; amount : amount };
+    event e
+end
+
 (* Response function for successful LiquidityManager action *)
 transition LiquidityManagerSuccess(sender : ByStr20, refund : Uint128, token : ByStr20,
         total_supply_new : Uint128, token_reserve_new : Uint128, sender_balance_new : Uint128,
