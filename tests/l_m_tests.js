@@ -2,17 +2,12 @@ const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const common = require('./common.js');
 
 async function test_add_liquidity(zilliqa, VERSION,
-    address, h_address, h_args, t_address, t_args) {
+    address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args) {
   console.log("Testing AddLiquidity");
   try {
-    let add_liquidity_args = Object.assign({}, h_args);
-    add_liquidity_args.amount = units.toQa('20', units.Units.Zil);
+    let add_liquidity_args = Object.assign({}, args);
+    add_liquidity_args.amount = new BN(20);
     let data = ([
-      {
-        vname: "_tag",
-        type: "String",
-        value: "AddLiquidity"
-      },
       {
         vname: "token",
         type: "ByStr20",
@@ -21,36 +16,33 @@ async function test_add_liquidity(zilliqa, VERSION,
       {
         vname: "min_liquidity",
         type: "Uint128",
-        value: 2e4
+        value: `${2e4}`
       },
       {
         vname: "max_tokens",
         type: "Uint128",
-        value: 4e4
+        value: `${4e4}`
       },
       {
         vname: "deadline",
         type: "BNum",
-        value: 1e20
+        value:  `${1e20}`
       }
     ]);
-    let add_liquidity_call = await common.bundle_tx(zilliqa, add_liquidity_args, data);
+    // let add_liquidity_call = await common.bundle_tx(zilliqa, add_liquidity_args, data);
+    let add_liquidity_call = await h.call("AddLiquidity", data, add_liquidity_args, 33, 1000, true);
     console.log(add_liquidity_call);
+    console.log(add_liquidity_call.receipt);
   } catch (err) {
     console.log(err);
   }
 }
 
 async function test_remove_liquidity(zilliqa, VERSION,
-    address, h_address, h_args, t_address, t_args) {
+    address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args) {
   console.log("Testing RemoveLiquidity");
   try {
     let data = ([
-      {
-        vname: "_tag",
-        type: "String",
-        value: "RemoveLiquidity"
-      },
       {
         vname: "token",
         type: "ByStr20",
@@ -59,22 +51,22 @@ async function test_remove_liquidity(zilliqa, VERSION,
       {
         vname: "amount",
         type: "Uint128",
-        value: 1e4
+        value: `${1e4}`
       },
       {
         vname: "min_zil",
         type: "Uint128",
-        value: 1e13
+        value: `${1e13}`
       },
       {
         vname: "min_tokens",
         type: "Uint128",
-        value: 2e4
+        value: `${2e4}`
       },
       {
         vname: "deadline",
         type: "BNum",
-        value: 1e20
+        value: `${1e20}`
       },
       {
         vname: "recipient",
@@ -82,8 +74,10 @@ async function test_remove_liquidity(zilliqa, VERSION,
         value: `0x${address}`
       }
     ]);
-    let remove_liquidity_call = await common.bundle_tx(zilliqa, h_args, data);
+    // let remove_liquidity_call = await common.bundle_tx(zilliqa, h_args, data);
+    let remove_liquidity_call = await h.call("RemoveLiquidity", data, args, 33, 1000, true);
     console.log(remove_liquidity_call);
+    console.log(remove_liquidity_call.receipt);
   } catch (err) {
     console.log(err);
   }
@@ -91,13 +85,13 @@ async function test_remove_liquidity(zilliqa, VERSION,
 
 // Runs tests for liquidity manager contract
 async function test_liquidity_manager(zilliqa, VERSION,
-    address, h_address, h_args, t_address, t_args) {
+    address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args) {
   console.log("##### Testing LiquidityManager #####");
   try {
     await test_add_liquidity(zilliqa, VERSION,
-        address, h_address, h_args, t_address, t_args);
+        address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
     await test_remove_liquidity(zilliqa, VERSION,
-        address, h_address, h_args, t_address, t_args);
+        address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
   } catch (err) {
     console.log(err);
   }

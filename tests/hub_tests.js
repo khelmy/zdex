@@ -1,4 +1,6 @@
+const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const common = require('./common.js');
+const assert = require('assert').strict;
 
 async function test_initialize(zilliqa, VERSION,
     address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args) {
@@ -22,9 +24,7 @@ async function test_initialize(zilliqa, VERSION,
       }
     ]);;
     let initialize_call = await h.call("Initialize", data, args, 33, 1000, true);
-    console.log(initialize_call);
-    // console.log(initialize_call.receipt.errors);
-    // console.log(initialize_call.receipt.errors["0"]);
+    assert.strictEqual(initialize_call.status, 2);
   } catch (err) {
     console.log(err);
   }
@@ -43,7 +43,7 @@ async function test_create_market(zilliqa, VERSION,
     ]);
     // let create_market_call = await common.bundle_tx(zilliqa, h_args, data);
     let create_market_call = await h.call("CreateMarket", data, args, 33, 1000, true);
-    console.log(create_market_call);
+    assert.strictEqual(create_market_call.status, 2);
   } catch (err) {
     console.log(err);
   }
@@ -72,12 +72,13 @@ async function test_approve_aux(zilliqa, VERSION,
           {
             vname: "limit",
             type: "Uint128",
-            value: "1000000"
+            value: `${1e12}`
           }
         ]);
-        // approve_aux_call = await common.bundle_tx(zilliqa, h_args, data);
+        console.log(data);
         approve_aux_call = await h.call("ApproveAux", data, args, 33, 1000, true);
         console.log(approve_aux_call);
+        console.log(approve_aux_call.receipt);
       }
     } catch (err) {
       console.log(err);

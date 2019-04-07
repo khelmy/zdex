@@ -5,9 +5,9 @@ const CP = require('@zilliqa-js/crypto');
 
 const deploy = require("./deploy.js");
 const hub = require("./hub_tests.js")
-const l_m = require("./l_m_tests.js");
-const z_t = require("./z_t_tests.js");
-const t_z = require("./t_z_tests.js");
+const liquidity_manager = require("./l_m_tests.js");
+const zil_token = require("./z_t_tests.js");
+const token_zil = require("./t_z_tests.js");
 
 // Runs tests for all contracts
 async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr) {
@@ -46,11 +46,11 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
     });
     await hub.test_hub(zilliqa, VERSION,
         address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
-    await l_m.test_liquidity_manager(zilliqa, VERSION,
+    await liquidity_manager.test_liquidity_manager(zilliqa, VERSION,
+        address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
+    await zil_token.test_zil_to_token(network, zilliqa, VERSION,
         address, h_address, h_args, t_address, t_args);
-    await z_t.test_zil_to_token(network, zilliqa, VERSION,
-        address, h_address, h_args, t_address, t_args);
-    await t_z.test_token_to_zil(network, zilliqa, VERSION,
+    await token_zil.test_token_to_zil(network, zilliqa, VERSION,
         address, h_address, h_args, t_address, t_args);
     console.log("######### All Tests Passed! #########")
   } catch(err) {
