@@ -22,7 +22,7 @@ async function test_initialize(zilliqa, VERSION,
         type: "ByStr20",
         value: `0x${t_z_address}`
       }
-    ]);;
+    ]);
     let initialize_call = await h.call("Initialize", data, args, 33, 1000, true);
     assert.strictEqual(initialize_call.status, 2);
   } catch (err) {
