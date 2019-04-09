@@ -17,12 +17,12 @@ async function test_add_liquidity(zilliqa, VERSION,
       {
         vname: "min_liquidity",
         type: "Uint128",
-        value: `${2e4}`
+        value: `${4e4}`
       },
       {
         vname: "max_tokens",
         type: "Uint128",
-        value: `${4e4}`
+        value: `${8e4}`
       },
       {
         vname: "deadline",
