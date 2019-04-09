@@ -75,10 +75,8 @@ async function test_approve_aux(zilliqa, VERSION,
             value: `${1e12}`
           }
         ]);
-        console.log(data);
         approve_aux_call = await h.call("ApproveAux", data, args, 33, 1000, true);
-        console.log(approve_aux_call);
-        console.log(approve_aux_call.receipt);
+        assert.strictEqual(approve_aux_call.status, 2);
       }
     } catch (err) {
       console.log(err);

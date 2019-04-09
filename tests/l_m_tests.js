@@ -1,12 +1,25 @@
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const common = require('./common.js');
+const assert = require('assert').strict;
 
 async function test_add_liquidity(zilliqa, VERSION,
     address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args) {
   console.log("Testing AddLiquidity");
   try {
+    let approve_data = ([
+      {
+        vname: "spender",
+        type: "ByStr20",
+        value: `0x${l_m_address}`
+      },
+      {
+        vname: "tokens",
+        type: "Uint128",
+        value: `${1e12}`
+      }
+    ]);
     let add_liquidity_args = Object.assign({}, args);
-    add_liquidity_args.amount = new BN(20);
+    add_liquidity_args.amount = new BN(1e8);
     let data = ([
       {
         vname: "token",
@@ -30,9 +43,10 @@ async function test_add_liquidity(zilliqa, VERSION,
       }
     ]);
     // let add_liquidity_call = await common.bundle_tx(zilliqa, add_liquidity_args, data);
+    let approve_call = await t.call("Approve", approve_data, args, 33, 1000, true);
+    assert.strictEqual(approve_call.status, 2);
     let add_liquidity_call = await h.call("AddLiquidity", data, add_liquidity_args, 33, 1000, true);
-    console.log(add_liquidity_call);
-    console.log(add_liquidity_call.receipt);
+    assert.strictEqual(add_liquidity_call.status, 2);
   } catch (err) {
     console.log(err);
   }
