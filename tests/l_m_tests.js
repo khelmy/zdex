@@ -90,8 +90,7 @@ async function test_remove_liquidity(zilliqa, VERSION,
     ]);
     // let remove_liquidity_call = await common.bundle_tx(zilliqa, h_args, data);
     let remove_liquidity_call = await h.call("RemoveLiquidity", data, args, 33, 1000, true);
-    console.log(remove_liquidity_call);
-    console.log(remove_liquidity_call.receipt);
+    assert.strictEqual(remove_liquidity_call.status, 2);
   } catch (err) {
     console.log(err);
   }
