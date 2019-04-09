@@ -192,9 +192,10 @@ transition RemoveLiquidity (token : ByStr20, amount : Uint128, min_zil : Uint128
     token_zil_balance <- token_zil_balances[token];
     sender_balance <- token_balances[token][_sender];
     msg = { _tag : "RemoveLiquidityCore"; _recipient : l_m; _amount : zero;
-            token : token; amount : amount; min_tokens : min_tokens; deadline : deadline; recipient : recipient;
-            total_supply : total_supply; sender_balance : sender_balance; reserve : reserve; balance : token_zil_balance;
-            sender : _sender };
+            token : token; amount : amount; min_zil : min_zil;
+            min_tokens : min_tokens; deadline : deadline; recipient : recipient;
+            total_supply : total_supply; sender_balance : sender_balance; token_reserve : reserve;
+            balance : token_zil_balance; sender : _sender };
     msgs = one_msg msg;
     send msgs
 end
