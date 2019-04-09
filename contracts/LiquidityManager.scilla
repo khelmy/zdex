@@ -345,8 +345,8 @@ transition TransferFromSuccess (sender : ByStr20, recipient : ByStr20, amount : 
         sender_balance_pending := zero;
         total_supply_pending := zero;
         token_reserve_pending := zero;
-        sender_pending := zero_address;
-        token_pending := zero_address;
+        (* sender_pending := zero_address; *)
+        (* token_pending := zero_address; *)
         zil_sold_pending := zero;
         zil_bought_pending := zero;
         balance_pending := zero;
@@ -374,8 +374,8 @@ transition TransferFromFailure (sender : ByStr20, recipient : ByStr20, amount : 
         sender_balance_pending := zero;
         total_supply_pending := zero;
         token_reserve_pending := zero;
-        sender_pending := zero_address;
-        token_pending := zero_address;
+        (* sender_pending := zero_address; *)
+        (* token_pending := zero_address; *)
         zil_sold_pending := zero;
         zil_bought_pending := zero;
         balance_pending := zero;
