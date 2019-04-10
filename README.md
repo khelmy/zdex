@@ -10,19 +10,19 @@ Inspired by UniSwap: https://uniswap.io/
 The most recent versions of each contract can be found on the Zilliqa testnet at the addresses below:
 
 Hub contract address:
-`98a2442bff44a870c7cee7619edac4662e976e6d`
+`bb13aa89cac6e3d359b7636cdfaec4fdd478b002`
 
 LiquidityManager contract address:
-`d8be9be4b6fa6771ec8770dae0f0bcc02411a2c3`
+`3e5fae8f17e659f672eb816f1b2395f4c994bf99`
 
 ZilToToken contract address:
-`ae3a6fbb5f1257dffea7e19fd1736fd08a0087ec`
+`8ae7d36ac087eb394aca6242f897cedd05261e04`
 
 TokenToZil contract address:
-`4e791ec27c27ac3625f800a96e4e21d4c438bdb2`
+`8b723418c2fece8655bbe3cbdd0b6ba8dcecde86`
 
 FungibleToken contract address:
-`19d50acde2caac28f4508219e223b26afaf9ed49`
+`2c7764189c266f8523ecf29f85d91fc1d4700d9a`
 
 
 ## Run with Scilla Compiler (Docker)
