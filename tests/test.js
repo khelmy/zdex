@@ -51,7 +51,7 @@ async function test_all_v(network, h_addr, l_m_addr, z_t_addr, t_z_addr, t_addr)
     await zil_token.test_zil_to_token(network, zilliqa, VERSION,
         address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
     await token_zil.test_token_to_zil(network, zilliqa, VERSION,
-        address, h_address, h_args, t_address, t_args);
+        address, h, h_address, l_m, l_m_address, z_t, z_t_address, t_z, t_z_address, t, t_address, args);
     console.log("######### All Tests Passed! #########")
   } catch(err) {
     console.log(err);
