@@ -324,6 +324,43 @@ transition TokenToZilTransferInput (token : ByStr20, tokens_sold : Uint128,
     end
 end
 
+(* Output calls *)
+transition TokenToZilSwapOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum)
+    (* calls TokenToZilOutput() *)
+    t_z <- token_to_zil;
+    token_reserve <- token_reserves[token];
+    token_zil_balance <- token_zil_balances[token];
+    msg = { _tag : "TokenToZilOutput"; _recipient : t_z; _amount : zero;
+            token : token; zil_bought : zil_bought; max_tokens : max_tokens;
+            deadline : deadline; buyer : _sender; recipient : _sender;
+            token_reserve : token_reserve; balance : token_zil_balance };
+    msgs = one_msg msg;
+    send msgs
+end
+
+transition TokenToZilTransferOutput (token : ByStr20, zil_bought : Uint128,
+        max_tokens : Uint128, deadline : BNum, recipient : ByStr20)
+    (* calls TokenToZilInput() *)
+    r_eq_ta = builtin eq recipient _this_address;
+    match r_eq_ta with
+    |   False =>
+        t_z <- token_to_zil;
+        token_reserve <- token_reserves[token];
+        token_zil_balance <- token_zil_balances[token];
+        msg = { _tag : "TokenToZilOutput"; _recipient : t_z; _amount : zero;
+                token : token; zil_bought : zil_bought; max_tokens : max_tokens;
+                deadline : deadline; buyer : _sender; recipient : recipient;
+                token_reserve : token_reserve; balance : token_zil_balance };
+        msgs = one_msg msg;
+        send msgs
+    |   True =>
+        msg = { _tag : "TokenToZilTransferOutputFailure"; _recipient : _sender; _amount : zero;
+                code : bad_recipient_code };
+        msgs = one_msg msg;
+        send msgs
+    end
+end
 
 (*** Response Functions ***)
 (** Success Response **)
