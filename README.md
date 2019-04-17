@@ -5,6 +5,8 @@ Built with support from the Zilliqa Ecosystem Grant: https://blog.zilliqa.com/an
 
 Inspired by UniSwap: https://uniswap.io/
 
+Now available at https://zdex.cc.
+
 ## Current Status
 
 The most recent versions of each contract can be found on the Zilliqa testnet at the addresses below:
