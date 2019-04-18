@@ -11,7 +11,7 @@ Now available at https://zdex.cc.
 
 The following is a brief usage guide for the ZDEX app. Please refer to the UniSwap documentation for a more thorough guide to the underlying mechanism.
 
-To use the DEX on the testnet, first receive (testnet ZIL)[https://dev-wallet.zilliqa.com/faucet]. Then, navigate to the (app)[https://zdex.cc], and sign in with your private key or keystore file.
+To use the DEX on the testnet, first receive (testnet ZIL)[https://dev-wallet.zilliqa.com/faucet]. Then, navigate to the (app)[https://zdex.cc], and sign in with your private key or keystore file on the `Create Market`, `Manage Liquidity`, or `Swap` page.
 
 ### Opening a Market
 
@@ -24,6 +24,8 @@ Before trading can commence, we need to add liquidity. First, authorize the liqu
 As in UniSwap, liquidity providers share an 0.3% fee on trades in that market. 
 
 ### Trading
+
+To trade, go to the `Swap` page.
 
 To sell tokens for Zil, you first need to authorize the `TokenToZil` contract to transfer tokens. Go to the `Authorize Token to Zil` tab and give the `TokenToZil` contract permission to make trades on your behalf. Then, go to the `Token to Zil Swap` tab, enter the parameters you'd approve of, and submit the transaction. If such a deal can be made, the contract will perform the trade.
 
